@@ -13,6 +13,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 let ballPositionTarget;
+let cursorPosition;
 
 //---- Cannon physics world setup
 const world = new CANNON.World();
@@ -133,7 +134,20 @@ function triggerBallAnimation() {
   animateBallPath();
 }
 
+let mouse = new THREE.Vector2();
+let raycaster = new THREE.Raycaster();
+document.addEventListener('mousemove', onDocMouseMove);
 
+function onDocMouseMove(event) {
+  event.preventDefault();
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+}
+
+raycaster.setFromCamera( mouse.clone(), camera );   
+
+var objects = raycaster.intersectObjects(scene.children);
 
 
 //---- Animation loop
