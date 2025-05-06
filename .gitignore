@@ -1,3 +1,4 @@
 *.gltf
 *.fbx
 *.png
+node_modules/
