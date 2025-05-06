@@ -1,4 +1,10 @@
 *.gltf
 *.fbx
+*.hdr
 *.png
+*.webp
+*.webm
+*.jpeg
+*.mp3
+*.wav
 node_modules/
