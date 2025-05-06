@@ -14,6 +14,7 @@ document.body.appendChild(renderer.domElement);
 
 let ballPositionTarget;
 let cursorPosition;
+let playerBat;
 
 //---- Cannon physics world setup
 const world = new CANNON.World();
@@ -52,10 +53,12 @@ rgbeLoader.load('src/brown_photostudio_02_2k.hdr', function (texture) {
       console.log("GLTF Model Loaded");
   
       let model = gltf.scene;
-      model.scale.set(3, 3, 3); // Adjust scale as needed
+      model.scale.set(1, 1, 1); // Adjust scale as needed
 
       model.castShadow = true;
       model.receiveShadow = true;
+
+      playerBat = model;
 
       scene.add(model);
 
@@ -162,7 +165,13 @@ function animate() {
 
 
   bat.position.copy(batBody.position);
+
+  bat.position.x = mouse.x;
+  bat.position.y = mouse.y;
  // bat.rotation.setFromRotationMatrix(batBody.quaternion);
+
+ playerBat.position.x = mouse.x;
+ playerBat.position.y = mouse.y;
 
   renderer.render(scene, camera);
 }
