@@ -15,6 +15,7 @@ document.body.appendChild(renderer.domElement);
 let ballPositionTarget;
 let cursorPosition;
 let playerBat;
+let lerpSpeed = 0.2;
 
 //---- Cannon physics world setup
 const world = new CANNON.World();
@@ -152,6 +153,20 @@ raycaster.setFromCamera( mouse.clone(), camera );
 
 var objects = raycaster.intersectObjects(scene.children);
 
+function updatePlayerPosition() {
+
+  let currentPosition = new THREE.Vector3().copy(playerBat.position);
+
+  let playerTargPosition = new THREE.Vector3(mouse.x,mouse.y,1)
+
+  currentPosition.lerp(playerTargPosition, lerpSpeed);
+
+  // playerBat.position.x = mouse.x;
+  // playerBat.position.y = mouse.y;
+  playerBat.position.copy(currentPosition);
+
+}
+
 
 //---- Animation loop
 function animate() {
@@ -166,12 +181,14 @@ function animate() {
 
   bat.position.copy(batBody.position);
 
-  bat.position.x = mouse.x;
-  bat.position.y = mouse.y;
+  // bat.position.x = mouse.x;
+  // bat.position.y = mouse.y;
  // bat.rotation.setFromRotationMatrix(batBody.quaternion);
 
- playerBat.position.x = mouse.x;
- playerBat.position.y = mouse.y;
+ //playerBat.position.x = mouse.x;
+ //playerBat.position.y = mouse.y;
+
+ updatePlayerPosition();
 
   renderer.render(scene, camera);
 }
