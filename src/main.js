@@ -14,6 +14,7 @@ document.body.appendChild(renderer.domElement);
 
 let ballPositionTarget;
 let playerTableTarget;
+let randomTarget;
 let oppositionTableTarget;
 let cursorPosition;
 let playerBat;
@@ -21,16 +22,19 @@ let playerBatBody;
 let cylinder;
 let lerpSpeed = 0.2;
 
+let tableWidth = 7;
+
 //---- Cannon physics world setup
 const world = new CANNON.World();
 world.gravity.set(0, -9.82, 0); // gravity in y-axis
 
 //---- Bat and ball setup in Three.js and Cannon
-const tableGeometry = new THREE.BoxGeometry(7, 0.1, 16);
+const tableGeometry = new THREE.BoxGeometry(tableWidth, 0.1, 16);
 const batMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 const bat = new THREE.Mesh(tableGeometry, batMaterial);
 bat.position.set(0, 1, 0);
 scene.add(bat);
+
 
 playerTableTarget= new THREE.Vector3(0,.05,-8);
 oppositionTableTarget= new THREE.Vector3(0,.05,8);
@@ -119,11 +123,12 @@ scene.add(ball);
 
 //---- Create a physics body for the ball
 const ballBody = new CANNON.Body({
-  mass: 0.2,
-  position: new CANNON.Vec3(0, 3, 0),
+  mass: 0.05,
+  position: new CANNON.Vec3(0, 6, 0),
 });
 ballBody.addShape(new CANNON.Sphere(0.2));
 world.addBody(ballBody);
+ballBody.velocity.set(0,-15,0);
 
 //---- Set camera position
 camera.position.z = 13;
@@ -133,11 +138,14 @@ camera.position.y = 3;
 world.addEventListener("postStep", () => {
   const dist = ballBody.position.distanceTo(playerBatBody.position);
   if (dist < .70) {
+    shotHit();
     triggerBallAnimation();
+    
     console.log("hit player bat");
   }
 });
 
+document.addEventListener("mousedown",triggerBallAnimationStart);
 document.addEventListener("mouseup",triggerBallAnimation);
 
 let isBallInAir = false;
@@ -145,6 +153,32 @@ let targetPos = new THREE.Vector3(3, 0, 18); // Target position
 let startPos = ballBody.position.clone();
 let flightDuration = 2; // Duration for the ball's path (seconds)
 let startTime = 0;
+
+function triggerBallAnimationStart() {
+  if (isBallInAir) return;
+  isBallInAir = true;
+  startTime = Date.now();
+  ballBody.velocity.set(0, 0, 0); // Stop any current movement
+
+  function animateBallPath() {
+    const elapsedTime = (Date.now() - startTime) / 1000;
+    if (elapsedTime > flightDuration) {
+      isBallInAir = false;
+      return;
+    }
+
+    const t = elapsedTime / flightDuration;
+    const curvePos = new THREE.Vector3().lerpVectors(startPos, targetPos, t);
+    curvePos.y += Math.sin(t * Math.PI) * 2; // Curve effect
+
+    ball.position.copy(curvePos);
+    ballBody.position.copy(curvePos);
+
+    requestAnimationFrame(animateBallPath);
+  }
+
+  animateBallPath();
+}
 
 function triggerBallAnimation() {
   if (isBallInAir) return;
@@ -160,7 +194,7 @@ function triggerBallAnimation() {
     }
 
     const t = elapsedTime / flightDuration;
-    const curvePos = new THREE.Vector3().lerpVectors(startPos, targetPos, t);
+    const curvePos = new THREE.Vector3().lerpVectors(startPos, randomTarget, t);
     curvePos.y += Math.sin(t * Math.PI) * 2; // Curve effect
 
     ball.position.copy(curvePos);
@@ -236,19 +270,16 @@ function updatePlayerPosition() {
     playerBat.rotateX(-Math.PI/2);
     playerBat.rotateY(Math.PI/2);
 
-  let direction = new THREE.Vector3().subVectors(rotationTargetPlayer, currentPosition);
-  direction.normalize();
-
-  let offset = direction.multiplyScalar(1);
-
-
-
-
    //Rotate collision mesh
    playerBatBody.position.copy(currentPosition);
   playerBatBody.quaternion.copy(playerBat);
 
-  // let cylinderCopy =  new THREE.Vector3().copy(currentPosition).sub(offset);
+ // let direction = new THREE.Vector3().subVectors(rotationTargetPlayer, currentPosition);
+ // direction.normalize();
+
+  //let offset = direction.multiplyScalar(1);
+
+  // let cylinderCopy =  new THREE.Vector3().copy(currentPosition).sub(offset); //This offset is used for when the origin of the bat is at the handle.
   
   let cylinderCopy = currentPosition;
 
@@ -260,6 +291,20 @@ function updatePlayerPosition() {
    playerBatBody.position.copy(cylinderCopy);
    playerBatBody.quaternion.copy(cylinder);
    
+
+}
+
+function shotHit() {
+  //----This is the shot return function. Takes a randomized target on the table (vector3) and then creates a curve towards it.
+  // After, add spin depending on player shot (to achieve this, potentially have two checks, a large distance and small. 
+  // The large distance can be used to check bat movement direction and from this, apply spin. The small is used for "hitting" the ball.)
+  // Spin application just changes the direction of the ball after the bounce. Creating variation in the hits.
+
+  //Deciding random point on table to target first.
+  randomTarget = playerTableTarget;
+  randomTarget.x = Math.random() * ((tableWidth/2) - (-(tableWidth/2))) + -(tableWidth/2);
+  
+  console.log(randomTarget);
 
 
 }
@@ -274,6 +319,7 @@ function animate() {
 
   // Sync Three.js objects with Cannon physics bodies
   ball.position.copy(ballBody.position);
+
 
 
   bat.position.copy(tableBody.position);
