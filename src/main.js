@@ -18,6 +18,7 @@ let oppositionTableTarget;
 let cursorPosition;
 let playerBat;
 let playerBatBody;
+let cylinder;
 let lerpSpeed = 0.2;
 
 //---- Cannon physics world setup
@@ -25,9 +26,9 @@ const world = new CANNON.World();
 world.gravity.set(0, -9.82, 0); // gravity in y-axis
 
 //---- Bat and ball setup in Three.js and Cannon
-const batGeometry = new THREE.BoxGeometry(7, 0.1, 16);
+const tableGeometry = new THREE.BoxGeometry(7, 0.1, 16);
 const batMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-const bat = new THREE.Mesh(batGeometry, batMaterial);
+const bat = new THREE.Mesh(tableGeometry, batMaterial);
 bat.position.set(0, 1, 0);
 scene.add(bat);
 
@@ -59,12 +60,12 @@ rgbeLoader.load('src/brown_photostudio_02_2k.hdr', function (texture) {
   // pmremGenerator.dispose();
 
 
-  gltfloader.load('src/bat.gltf', function (gltf) {
+  gltfloader.load('src/pong-bat_cent.gltf', function (gltf) {
       console.log("GLTF Model Loaded");
   
       let model = gltf.scene;
       
-      model.scale.set(.5, .5, .5); // Adjust scale as needed
+      model.scale.set(.75, .75, .75); // Adjust scale as needed
 
       model.castShadow = true;
       model.receiveShadow = true;
@@ -74,6 +75,20 @@ rgbeLoader.load('src/brown_photostudio_02_2k.hdr', function (texture) {
       scene.add(model);
 
       const box = new THREE.Box3().setFromObject(model);
+
+      const cylinderGeo = new THREE.CylinderGeometry(.75,.75,.1,8);
+      const cylMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff ,wireframe:true});
+      cylinder = new THREE.Mesh(cylinderGeo, cylMaterial);
+      scene.add(cylinder);
+      cylinder.position.set(0, 1, 0);
+
+
+      const cannonCylinder = new CANNON.Cylinder(0.75, 0.75, 0.1, 8);
+      const q = new CANNON.Quaternion();
+      q.setFromEuler(Math.PI / 2, 0, 0); // Rotate 90 degrees around X
+
+      cannonCylinder.transformAllPoints(new CANNON.Vec3(), q); // Apply the rotation to the shape
+
       const size = new THREE.Vector3();
       box.getSize(size);
     
@@ -84,7 +99,7 @@ rgbeLoader.load('src/brown_photostudio_02_2k.hdr', function (texture) {
       playerBatBody = new CANNON.Body({
         mass: 0, // static
         position: new CANNON.Vec3(model.position.x, model.position.y, model.position.z),
-        shape: new CANNON.Box(halfExtents)
+        shape: cannonCylinder
       });
     
       world.addBody(playerBatBody);
@@ -117,7 +132,7 @@ camera.position.y = 3;
 // ----Detect collision and trigger animation
 world.addEventListener("postStep", () => {
   const dist = ballBody.position.distanceTo(playerBatBody.position);
-  if (dist < 0.3) {
+  if (dist < .70) {
     triggerBallAnimation();
     console.log("hit player bat");
   }
@@ -126,7 +141,7 @@ world.addEventListener("postStep", () => {
 document.addEventListener("mouseup",triggerBallAnimation);
 
 let isBallInAir = false;
-let targetPos = new THREE.Vector3(0, 0, 18); // Target position
+let targetPos = new THREE.Vector3(3, 0, 18); // Target position
 let startPos = ballBody.position.clone();
 let flightDuration = 2; // Duration for the ball's path (seconds)
 let startTime = 0;
@@ -164,7 +179,7 @@ const quaternion = new THREE.Quaternion();
 
 
 let targetZ=9; //TargetZ used to decide the z value the bat is placed on.
-let rotationTargetPlayer = new THREE.Vector3(0,0,targetZ);
+let rotationTargetPlayer = new THREE.Vector3(0,0,targetZ+.25);
 var vec = new THREE.Vector3(); // create once and reuse
 var pos = new THREE.Vector3(); // create once and reuse
 
@@ -218,13 +233,33 @@ function updatePlayerPosition() {
 
 //Rotating towards base.
    playerBat.lookAt(rotationTargetPlayer);
-   playerBat.rotateX(-Math.PI/2);
-   playerBat.rotateY(Math.PI/2);
+    playerBat.rotateX(-Math.PI/2);
+    playerBat.rotateY(Math.PI/2);
+
+  let direction = new THREE.Vector3().subVectors(rotationTargetPlayer, currentPosition);
+  direction.normalize();
+
+  let offset = direction.multiplyScalar(1);
+
+
+
 
    //Rotate collision mesh
    playerBatBody.position.copy(currentPosition);
   playerBatBody.quaternion.copy(playerBat);
 
+  // let cylinderCopy =  new THREE.Vector3().copy(currentPosition).sub(offset);
+  
+  let cylinderCopy = currentPosition;
+
+  cylinder.position.copy(cylinderCopy);
+ cylinder.lookAt(rotationTargetPlayer);
+   
+   cylinder.rotateZ(Math.PI/2);
+
+   playerBatBody.position.copy(cylinderCopy);
+   playerBatBody.quaternion.copy(cylinder);
+   
 
 
 }
