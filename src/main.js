@@ -13,8 +13,11 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 let ballPositionTarget;
+let playerTableTarget;
+let oppositionTableTarget;
 let cursorPosition;
 let playerBat;
+let playerBatBody;
 let lerpSpeed = 0.2;
 
 //---- Cannon physics world setup
@@ -22,21 +25,27 @@ const world = new CANNON.World();
 world.gravity.set(0, -9.82, 0); // gravity in y-axis
 
 //---- Bat and ball setup in Three.js and Cannon
-const batGeometry = new THREE.BoxGeometry(1, 0.1, 0.3);
+const batGeometry = new THREE.BoxGeometry(7, 0.1, 16);
 const batMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 const bat = new THREE.Mesh(batGeometry, batMaterial);
 bat.position.set(0, 1, 0);
 scene.add(bat);
 
+playerTableTarget= new THREE.Vector3(0,.05,-8);
+oppositionTableTarget= new THREE.Vector3(0,.05,8);
+
 //---- Create a physics body for the bat
-const batBody = new CANNON.Body({
+const tableBody = new CANNON.Body({
   mass: 0,
   position: new CANNON.Vec3(0, 1, 0),
 });
-batBody.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 0.05, 0.15)));
-world.addBody(batBody);
+tableBody.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 0.05, 0.15)));
+world.addBody(tableBody);
 
 // ----Loading Bat
+
+
+
 rgbeLoader.load('src/brown_photostudio_02_2k.hdr', function (texture) {
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
   const envMap = pmremGenerator.fromEquirectangular(texture).texture;
@@ -54,7 +63,8 @@ rgbeLoader.load('src/brown_photostudio_02_2k.hdr', function (texture) {
       console.log("GLTF Model Loaded");
   
       let model = gltf.scene;
-      model.scale.set(1, 1, 1); // Adjust scale as needed
+      
+      model.scale.set(.5, .5, .5); // Adjust scale as needed
 
       model.castShadow = true;
       model.receiveShadow = true;
@@ -63,14 +73,27 @@ rgbeLoader.load('src/brown_photostudio_02_2k.hdr', function (texture) {
 
       scene.add(model);
 
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+    
+      // Half-extents for Cannon.js box
+      const halfExtents = new CANNON.Vec3(size.x / 2, size.y / 2, size.z / 2);
+    
+      // Create Cannon.js body
+      playerBatBody = new CANNON.Body({
+        mass: 0, // static
+        position: new CANNON.Vec3(model.position.x, model.position.y, model.position.z),
+        shape: new CANNON.Box(halfExtents)
+      });
+    
+      world.addBody(playerBatBody);
+
 
   });
 
 
 });
-
-
-
 
 //---- Ball setup in Three.js
 const ballGeometry = new THREE.SphereGeometry(0.2);
@@ -81,34 +104,30 @@ scene.add(ball);
 
 //---- Create a physics body for the ball
 const ballBody = new CANNON.Body({
-  mass: 0,
+  mass: 0.2,
   position: new CANNON.Vec3(0, 3, 0),
 });
 ballBody.addShape(new CANNON.Sphere(0.2));
 world.addBody(ballBody);
 
 //---- Set camera position
-camera.position.z = 5;
+camera.position.z = 13;
+camera.position.y = 3;
 
 // ----Detect collision and trigger animation
 world.addEventListener("postStep", () => {
-  const dist = ballBody.position.distanceTo(batBody.position);
+  const dist = ballBody.position.distanceTo(playerBatBody.position);
   if (dist < 0.3) {
     triggerBallAnimation();
+    console.log("hit player bat");
   }
 });
 
-//---- Drag bat.
-world.addEventListener("postStep", () => {
-    const dist = ballBody.position.distanceTo(batBody.position);
-    if (dist < 0.3) {
-      triggerBallAnimation();
-    }
-  });
+document.addEventListener("mouseup",triggerBallAnimation);
 
 let isBallInAir = false;
-let targetPos = new THREE.Vector3(5, 5, 0); // Target position
-let startPos = ball.position.clone();
+let targetPos = new THREE.Vector3(0, 0, 18); // Target position
+let startPos = ballBody.position.clone();
 let flightDuration = 2; // Duration for the ball's path (seconds)
 let startTime = 0;
 
@@ -143,6 +162,9 @@ let playRegionMultiplier = new THREE.Vector2(3,2);
 let raycaster = new THREE.Raycaster();
 const quaternion = new THREE.Quaternion();
 
+
+let targetZ=9; //TargetZ used to decide the z value the bat is placed on.
+let rotationTargetPlayer = new THREE.Vector3(0,0,targetZ);
 var vec = new THREE.Vector3(); // create once and reuse
 var pos = new THREE.Vector3(); // create once and reuse
 
@@ -155,7 +177,7 @@ function onDocMouseMove(event) {
   mouse.x = ((event.clientX / window.innerWidth) * 2 - 1)*4;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-
+  //----Determining mouse movement along plane:
   vec.set(
     ( event.clientX / window.innerWidth ) * 2 - 1,
     - ( event.clientY / window.innerHeight ) * 2 + 1,
@@ -166,13 +188,10 @@ function onDocMouseMove(event) {
       
   vec.sub( camera.position ).normalize();
       
-  var distance = - camera.position.z / vec.z;
+  var distance =(targetZ - camera.position.z) / vec.z;
       
   pos.copy( camera.position ).add( vec.multiplyScalar( distance ) );
 
-  
-
-  console.log(mouse);
 
 }
 
@@ -190,21 +209,24 @@ function updatePlayerPosition() {
 
    targetPosition = pos;
 
+   
+
   // Move towards the target
   currentPosition.lerp(targetPosition, lerpSpeed);
   playerBat.position.copy(currentPosition);
+  playerBatBody.position.copy(currentPosition);
 
-  // Compute direction vector from current to target
-  // let direction = new THREE.Vector3().subVectors(targetPosition, currentPosition).normalize();
+//Rotating towards base.
+   playerBat.lookAt(rotationTargetPlayer);
+   playerBat.rotateX(-Math.PI/2);
+   playerBat.rotateY(Math.PI/2);
 
-  // // Calculate a quaternion that points the local +Z axis in the direction of movement
-  // const quat = new THREE.Quaternion();
-  // const up = new THREE.Vector3(0, 1, 0); // Use Y-up world
-  // const matrix = new THREE.Matrix4().lookAt(currentPosition, targetPosition, up);
-  // quat.setFromRotationMatrix(matrix);
+   //Rotate collision mesh
+   playerBatBody.position.copy(currentPosition);
+  playerBatBody.quaternion.copy(playerBat);
 
-  // // Apply the rotation
-  // playerBat.quaternion.copy(quat);
+
+
 }
 
 
@@ -219,7 +241,7 @@ function animate() {
   ball.position.copy(ballBody.position);
 
 
-  bat.position.copy(batBody.position);
+  bat.position.copy(tableBody.position);
 
   // bat.position.x = mouse.x;
   // bat.position.y = mouse.y;
