@@ -139,13 +139,40 @@ function triggerBallAnimation() {
 }
 
 let mouse = new THREE.Vector2();
+let playRegionMultiplier = new THREE.Vector2(3,2);
 let raycaster = new THREE.Raycaster();
+const quaternion = new THREE.Quaternion();
+
+var vec = new THREE.Vector3(); // create once and reuse
+var pos = new THREE.Vector3(); // create once and reuse
+
+
+
 document.addEventListener('mousemove', onDocMouseMove);
 
 function onDocMouseMove(event) {
   event.preventDefault();
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.x = ((event.clientX / window.innerWidth) * 2 - 1)*4;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+
+  vec.set(
+    ( event.clientX / window.innerWidth ) * 2 - 1,
+    - ( event.clientY / window.innerHeight ) * 2 + 1,
+    0.5,
+  );
+  
+  vec.unproject( camera );
+      
+  vec.sub( camera.position ).normalize();
+      
+  var distance = - camera.position.z / vec.z;
+      
+  pos.copy( camera.position ).add( vec.multiplyScalar( distance ) );
+
+  
+
+  console.log(mouse);
 
 }
 
@@ -153,18 +180,31 @@ raycaster.setFromCamera( mouse.clone(), camera );
 
 var objects = raycaster.intersectObjects(scene.children);
 
+
+//---Updates player bat position.
+// Within this, rotation will be required for a natural looking turn. (as potential polish.)
 function updatePlayerPosition() {
-
+  // Current and target positions
   let currentPosition = new THREE.Vector3().copy(playerBat.position);
+  let targetPosition = new THREE.Vector3(mouse.x, mouse.y, 0);
 
-  let playerTargPosition = new THREE.Vector3(mouse.x,mouse.y,1)
+   targetPosition = pos;
 
-  currentPosition.lerp(playerTargPosition, lerpSpeed);
-
-  // playerBat.position.x = mouse.x;
-  // playerBat.position.y = mouse.y;
+  // Move towards the target
+  currentPosition.lerp(targetPosition, lerpSpeed);
   playerBat.position.copy(currentPosition);
 
+  // Compute direction vector from current to target
+  // let direction = new THREE.Vector3().subVectors(targetPosition, currentPosition).normalize();
+
+  // // Calculate a quaternion that points the local +Z axis in the direction of movement
+  // const quat = new THREE.Quaternion();
+  // const up = new THREE.Vector3(0, 1, 0); // Use Y-up world
+  // const matrix = new THREE.Matrix4().lookAt(currentPosition, targetPosition, up);
+  // quat.setFromRotationMatrix(matrix);
+
+  // // Apply the rotation
+  // playerBat.quaternion.copy(quat);
 }
 
 
