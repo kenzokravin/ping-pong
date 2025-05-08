@@ -19,8 +19,12 @@ let playerPosition;
 
 //May have to decide ball movement from server instead of client.
 let ball={x:0,y:4,z:0};
-let isBallInAir = false;
-let startTime;
+let isBallMoving = false;
+let startTime = Date.now();
+let targetPos = {x:0,y:4.5,z:-13} ; //new THREE.Vector3(3, 0, 18); // Target position
+let startPos = {x:0,y:4.5,z:0}; ;// ballBody.position.clone();
+let flightDuration = 7; // Duration for the ball's path (seconds), this will decrease as game goes on to increase pace of play.
+
 
 //---- Cannon physics world setup
 const world = new CANNON.World();
@@ -34,7 +38,8 @@ const ballBody = new CANNON.Body({
 ballBody.addShape(new CANNON.Sphere(0.2));
 world.addBody(ballBody);
 
-
+//Init server-side Table
+//This will control the table width and length and is used to "bounce" the ball through deciding the targetPosition of each hit.
 
 
 //Connection runs once per player that connects to server.
@@ -62,22 +67,10 @@ server.on('connection', socket => {
    
   }
 
-    //This could be where we init the player bats.
+  //Init player bats.
   const paddleBody = createPaddleBodyForIndex(pNumber);
-   //players[id] = { paddleBody };
-
-   playerBodies[playerPosition] = paddleBody;
-  
+  playerBodies[playerPosition] = paddleBody; //used to keep track of player bat bodies using player index order.
   world.addBody(paddleBody);
-
-  
-  // for (const [id, paddleBody] of Object.entries(players)) {
-  // serializedPlayers[id] = {
-  //   x: paddleBody.position.x,
-  //   y: paddleBody.position.y,
-  //   z: paddleBody.position.z,
-  // };
-  // }
 
   socket.send(JSON.stringify({ type: 'init', id,playerPosition}));
 
@@ -129,9 +122,9 @@ setInterval(() => {
   //Then we create a curve path to calculate across the interval.
 
 
+  execBallPath();
 
-
-
+  //console.log("Ball moving..." + ball.z);
 
   const snapshot = JSON.stringify({ type:'state',players,ball});
 
@@ -150,25 +143,6 @@ setInterval(() => {
 //---------- FUNCTIONS -----------------
 //--------------------------------------
 
-
-
-
-function serializePlayers() {
-
-  //Don't think this will be of use, the playerbody position does not matter, it is only the x,y,z that we already have available that controls it's position.
-  //This is because there is no point sending over the coords of the cannon body as they will be set to the user control anyway.
-
-  for (const [id, paddleBody] of Object.entries(players)) {
-    serializedPlayers[id] = {
-      x: paddleBody.position.x,
-      y: paddleBody.position.y,
-      z: paddleBody.position.z,
-
-
-    };
-    }
-
-}
 
 function playerTotal() {
   playerCount = Object.keys(players).length;
@@ -200,44 +174,68 @@ function createPaddleBodyForIndex(index) {
   return playerBatBody;
 }
 
-let targetPos ; //new THREE.Vector3(3, 0, 18); // Target position
-let startPos ;// ballBody.position.clone();
-let flightDuration = 2; // Duration for the ball's path (seconds), this will decrease as game goes on to increase pace of play.
-
 function startBallPath() {
-  if (isBallInAir) return;
-  isBallInAir = true;
+  if (isBallMoving) return;
+  isBallMoving = true;
   startTime = Date.now();
-  //ballBody.velocity.set(0, 0, 0); // Stop any current movement
+  startPos = {x:ball.x,y:ball.y,z:ball.z}; //Start pos takes ball pos at moment of collision.
+  ballBody.velocity.set(0, 0, 0); // Stop any current movement
+  targetPos.z = !targetPos.z; //Setting targetPos to opposite, to allow hit. This is just for testing.
 
   //animateBallPath();
 }
 
 function execBallPath() {
+  
   const elapsedTime = (Date.now() - startTime) / 1000;
   if (elapsedTime > flightDuration) {
-    isBallInAir = false;
+    isBallMoving = false;
     return;
   }
 
+  //console.log("Ball moving..." + ball.z);
   const t = elapsedTime / flightDuration;
-  const curvePos = new THREE.Vector3().lerpVectors(startPos, targetPos, t);
+  const curvePos = lerpVector3(startPos, targetPos, t);
   curvePos.y += Math.sin(t * Math.PI) * 2; // Curve effect
 
-  ball.position.copy(curvePos);
-  ballBody.position.copy(curvePos);
 
-  requestAnimationFrame(animateBallPath);
+  ball.x = curvePos.x;
+  ball.y = curvePos.y;
+  ball.z = curvePos.z;
+
+  console.log("Ball moving..." + ball.z);
+  syncBall(); //Syncing physBall with serverBall.
+
+  //requestAnimationFrame(animateBallPath); //This is used on the client-side to render the ball. Not a server-side function.
 }
 
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
 
+function lerpVector3(start, end, t) {
+  return {
+    x: lerp(start.x, end.x, t),
+    y: lerp(start.y, end.y, t),
+    z: lerp(start.z, end.z, t)
+  };
+}
+
+function syncBall() {
+  ballBody.position.x = ball.x;
+  ballBody.position.y = ball.y;
+  ballBody.position.z = ball.z;
+}
+
+//Adding event listener for ball hit.
 ballBody.addEventListener('collide', function (event) {
   const otherBody = event.body;
 
+  //This listener works by checking the event body against the player body list.
   for(let i = 0; i < playerBodies.length;i++) {
     if (playerBodies[i] === otherBody) {
-      //shotHit();
-      //triggerBallAnimation();
+      isBallMoving = false;
+      startBallPath(); //triggering ball recalculate path.
     console.log('Ball hit player ' + i );
     }
 

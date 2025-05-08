@@ -161,7 +161,7 @@ socket.addEventListener('message', event => {
 
   if (data.type === 'init') {
     id = data.id;
-    console.log(data.playerPosition); //This finds what order the player joins the server and how to broadcast others.
+    //console.log(data.playerPosition); //This finds what order the player joins the server and how to broadcast others.
 
     if(data.playerPosition == 1) {
       side = 1;
@@ -173,7 +173,7 @@ socket.addEventListener('message', event => {
     
   } else if (data.type === 'state') {
     players = data.players; //This is receiving info about all players.
-    console.log(players);
+    //console.log(players);
 
     for (const [playerId, pos] of Object.entries(data.players)) {
       if (playerId === id) continue; // Don't update yourself
@@ -212,8 +212,9 @@ socket.addEventListener('message', event => {
        opponentBat.rotateX(-Math.PI / 2);
        opponentBat.rotateY(Math.PI / 2);
     }
+
   //Render ball
-  //console.log(data.ball);
+  console.log(data.ball);
 
   if (!ball) {
     return;
@@ -226,6 +227,8 @@ socket.addEventListener('message', event => {
     scene.add(sBallMesh);
 
   }
+
+
 
   sBallMesh.position.set(sBall.x,sBall.y,sBall.z);
 
@@ -256,15 +259,15 @@ function setSide(side) {
 world.addEventListener("postStep", () => {
   const dist = ballBody.position.distanceTo(playerBatBody.position);
   if (dist < .70) {
-    shotHit();
-    triggerBallAnimation();
+    //shotHit();
+   // triggerBallAnimation();
     
     console.log("hit player bat");
   }
 });
 
-document.addEventListener("mousedown",triggerBallAnimationStart);
-document.addEventListener("mouseup",triggerBallAnimation);
+//document.addEventListener("mousedown",triggerBallAnimationStart);
+//document.addEventListener("mouseup",triggerBallAnimation);
 
 let isBallInAir = false;
 let targetPos = new THREE.Vector3(3, 0, 18); // Target position
