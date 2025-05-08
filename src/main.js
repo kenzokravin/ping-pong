@@ -9,10 +9,12 @@ const socket = new WebSocket('ws://localhost:8080');
 
 let id;
 let players;
-let dx,dy,dz;
+let dx,dy,dz; //Coords for player bat
+let bx,by,bz; // Coords for server ball.
 let opponentBats={};
 let otherBats=[];
-let serverBall;
+let sBallObj={};
+let sBallMesh;
 let side;
 
 
@@ -34,7 +36,7 @@ let cursorPosition;
 let playerBat;
 let playerBatBody;
 let cylinder;
-let lerpSpeed = 0.2;
+let lerpSpeed = 0.3;
 
 let cameraDist = 13; //How far camera is from centre of table.
 let tableWidth = 7; //Table width.
@@ -171,7 +173,7 @@ socket.addEventListener('message', event => {
     
   } else if (data.type === 'state') {
     players = data.players; //This is receiving info about all players.
-    //console.log(players);
+    console.log(players);
 
     for (const [playerId, pos] of Object.entries(data.players)) {
       if (playerId === id) continue; // Don't update yourself
@@ -217,8 +219,15 @@ socket.addEventListener('message', event => {
     return;
   }
 
-  serverBall = ball.clone();
+  const sBall = data.ball;
 
+  if(typeof sBallMesh === 'undefined') {
+    sBallMesh = ball.clone(); //creates clone of ball.
+    scene.add(sBallMesh);
+
+  }
+
+  sBallMesh.position.set(sBall.x,sBall.y,sBall.z);
 
   }
 });
@@ -357,7 +366,11 @@ raycaster.setFromCamera( mouse.clone(), camera );
 var objects = raycaster.intersectObjects(scene.children);
 
 
+function updateServerBall() {
 
+
+  socket.send(JSON.stringify({ type: 'move', dx, dy ,dz}));
+}
 
 
 
