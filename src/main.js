@@ -9,21 +9,9 @@ const socket = new WebSocket('ws://localhost:8080');
 
 let id;
 let players;
-
-//---- WS Event listeners.
-
-socket.addEventListener('message', event => {
-  const data = JSON.parse(event.data);
-
-  if (data.type === 'init') {
-    id = data.id;
-    console.log(data.playerData);
-  } else if (data.type === 'state') {
-    players = data.players; //This is receiving info about all players.
-    //console.log(players);
-  }
-});
-
+let dx,dy,dz;
+let opponentBats={};
+let otherBats=[];
 
 
 //---- Scene setup
@@ -156,6 +144,59 @@ ballBody.velocity.set(0,-15,0);
 //---- Set camera position
 camera.position.z = 13;
 camera.position.y = 3;
+
+// ---- WS setup.
+
+socket.addEventListener('message', event => {
+  const data = JSON.parse(event.data);
+
+  if (data.type === 'init') {
+    id = data.id;
+    console.log(data.playerPosition); //This finds what order the player joins the server and how to broadcast others.
+    
+  } else if (data.type === 'state') {
+    players = data.players; //This is receiving info about all players.
+    //console.log(players);
+
+    for (const [playerId, pos] of Object.entries(data.players)) {
+      if (playerId === id) continue; // Don't update yourself
+
+      for (const existingId of Object.keys(opponentBats)) {
+        if (!data.players.hasOwnProperty(existingId)) {
+          scene.remove(opponentBats[existingId]);
+          delete opponentBats[existingId];
+        }
+      }
+
+      //Creating oppositionBatModel.
+      if (!opponentBats[playerId]) {
+        if (!playerBat) return; //checks if player bat has loaded (gltf loader)
+
+        let batClone = playerBat.clone(); // or load a separate model
+        //batClone.material = playerBat.material.clone(); // optional: make it distinct
+        scene.add(batClone);
+        opponentBats[playerId] = batClone;
+        console.log(opponentBats);
+
+        batClone.traverse(child => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+          }
+        });
+      }
+
+
+       // Update position
+       const opponentBat = opponentBats[playerId];
+       opponentBat.position.set( pos.x,pos.y,pos.z);
+ 
+       // Optional: make them look at same point
+       opponentBat.lookAt(rotationTargetPlayer);
+       opponentBat.rotateX(-Math.PI / 2);
+       opponentBat.rotateY(Math.PI / 2);
+
+  }
+}});
 
 // ----Detect collision and trigger animation
 world.addEventListener("postStep", () => {
@@ -299,22 +340,26 @@ function updatePlayerPosition() {
 
  // let direction = new THREE.Vector3().subVectors(rotationTargetPlayer, currentPosition);
  // direction.normalize();
-
   //let offset = direction.multiplyScalar(1);
-
   // let cylinderCopy =  new THREE.Vector3().copy(currentPosition).sub(offset); //This offset is used for when the origin of the bat is at the handle.
   
   let cylinderCopy = currentPosition;
 
   cylinder.position.copy(cylinderCopy);
- cylinder.lookAt(rotationTargetPlayer);
+  cylinder.lookAt(rotationTargetPlayer);
    
-   cylinder.rotateZ(Math.PI/2);
+  cylinder.rotateZ(Math.PI/2);
 
-   playerBatBody.position.copy(cylinderCopy);
-   playerBatBody.quaternion.copy(cylinder);
+  playerBatBody.position.copy(cylinderCopy);
+  playerBatBody.quaternion.copy(cylinder);
+
+  //Loading positional data from player to send to websocket so other players can render.
+  dx=currentPosition.x;
+  dy=currentPosition.y;
+  dz=currentPosition.z;
+
+  socket.send(JSON.stringify({ type: 'move', dx, dy ,dz}));
    
-
 }
 
 function shotHit() {

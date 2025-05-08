@@ -1,4 +1,5 @@
 // server.js
+// To test changes, must re-run "npm run ws" in cmd.
 const WebSocket = require('ws');
 const server = new WebSocket.Server({ port: 8080 });
 
@@ -13,19 +14,19 @@ server.on('connection', socket => {
   playerTotal();
 
   if(playerCount==0) {
-
-    players[id] = { x: 0, y: 0 ,playerNum:0};
+    playerPosition = 0;
+    players[id] = { x: 0, y: 0 ,z: 0,pNum:0};
 
    // socket.send(JSON.stringify({ type: 'init', id }));
     console.log({ type: 'init', id });
   } else {
-
-    players[id] = { x: 0, y: 0 ,playerNum:1};
+    playerPosition = 1;
+    players[id] = { x: 0, y: 0 ,z:0,pNum:1};
    
    // socket.send(JSON.stringify({ type: 'init', id}));
   }
 
-  socket.send(JSON.stringify({ type: 'init', id, playerData:players[id] }));
+  socket.send(JSON.stringify({ type: 'init', id,playerPosition}));
 
   socket.on('message', message => {
     const data = JSON.parse(message);
@@ -33,8 +34,9 @@ server.on('connection', socket => {
     if (data.type === 'move') {
       const player = players[id];
       if (player) {
-        player.x += data.dx;
-        player.y += data.dy;
+        player.x = data.dx;
+        player.y = data.dy;
+        player.z = data.dz;
       }
     }
   });
