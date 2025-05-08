@@ -12,6 +12,9 @@ let players;
 let dx,dy,dz;
 let opponentBats={};
 let otherBats=[];
+let serverBall;
+let side;
+
 
 
 //---- Scene setup
@@ -33,7 +36,11 @@ let playerBatBody;
 let cylinder;
 let lerpSpeed = 0.2;
 
-let tableWidth = 7;
+let cameraDist = 13; //How far camera is from centre of table.
+let tableWidth = 7; //Table width.
+let targetZ=9;  //TargetZ used to decide the z value the bat is placed on.
+let rotationTargetPlayer = new THREE.Vector3(0,0,targetZ+.25);
+let rotationTargetOpposition = new THREE.Vector3(0,0,-(targetZ+.25));
 
 //---- Cannon physics world setup
 const world = new CANNON.World();
@@ -142,7 +149,7 @@ world.addBody(ballBody);
 ballBody.velocity.set(0,-15,0);
 
 //---- Set camera position
-camera.position.z = 13;
+camera.position.z = cameraDist;
 camera.position.y = 3;
 
 // ---- WS setup.
@@ -153,6 +160,14 @@ socket.addEventListener('message', event => {
   if (data.type === 'init') {
     id = data.id;
     console.log(data.playerPosition); //This finds what order the player joins the server and how to broadcast others.
+
+    if(data.playerPosition == 1) {
+      side = 1;
+    } else {
+      side = 0;
+    }
+
+    setSide(side);
     
   } else if (data.type === 'state') {
     players = data.players; //This is receiving info about all players.
@@ -188,15 +203,45 @@ socket.addEventListener('message', event => {
 
        // Update position
        const opponentBat = opponentBats[playerId];
-       opponentBat.position.set( pos.x,pos.y,-pos.z);
+       opponentBat.position.set( pos.x,pos.y,pos.z);
  
        // Optional: make them look at same point
        opponentBat.lookAt(rotationTargetOpposition);
        opponentBat.rotateX(-Math.PI / 2);
        opponentBat.rotateY(Math.PI / 2);
+    }
+  //Render ball
+  //console.log(data.ball);
+
+  if (!ball) {
+    return;
+  }
+
+  serverBall = ball.clone();
+
 
   }
-}});
+});
+
+//setSide acts to swap the logic so that the other player is positioned on the other side of the table.
+function setSide(side) {
+  if(side==0) return;
+  
+  if (side == 1) {
+
+    camera.position.z = -cameraDist;
+    
+    camera.rotateY(Math.PI);
+
+    targetZ= -targetZ;
+
+    rotationTargetPlayer = new THREE.Vector3(0,0,targetZ-.25);
+    rotationTargetOpposition.z = rotationTargetOpposition.z * -1;
+
+  }
+
+}
+
 
 // ----Detect collision and trigger animation
 world.addEventListener("postStep", () => {
@@ -276,9 +321,7 @@ let raycaster = new THREE.Raycaster();
 const quaternion = new THREE.Quaternion();
 
 
-let targetZ=9; //TargetZ used to decide the z value the bat is placed on.
-let rotationTargetPlayer = new THREE.Vector3(0,0,targetZ+.25);
-let rotationTargetOpposition = new THREE.Vector3(0,0,-(targetZ+.25));
+ //TargetZ used to decide the z value the bat is placed on.
 var vec = new THREE.Vector3(); // create once and reuse
 var pos = new THREE.Vector3(); // create once and reuse
 
@@ -312,6 +355,10 @@ function onDocMouseMove(event) {
 raycaster.setFromCamera( mouse.clone(), camera );   
 
 var objects = raycaster.intersectObjects(scene.children);
+
+
+
+
 
 
 //---Updates player bat position.
@@ -348,6 +395,8 @@ function updatePlayerPosition() {
 
   cylinder.position.copy(cylinderCopy);
   cylinder.lookAt(rotationTargetPlayer);
+
+  //console.log(rotationTargetPlayer);
    
   cylinder.rotateZ(Math.PI/2);
 

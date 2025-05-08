@@ -7,6 +7,8 @@ let players = {};
 let playerCount;
 let playerPosition;
 
+let ball={x:0,y:2,z:0};
+
 server.on('connection', socket => {
   const id = Math.random().toString(36).substr(2, 9);
   //players[id] = { x: 0, y: 0 ,playerNum:0};
@@ -46,15 +48,16 @@ server.on('connection', socket => {
   });
 });
 
-// Broadcast game state 20 times per second
+// Broadcast game state 
+//Decrease right now: 30 fps. Decreasing increases responsiveness but targets high-end systems.
 setInterval(() => {
-  const snapshot = JSON.stringify({ type: 'state', players });
+  const snapshot = JSON.stringify({ type: 'state', players,ball});
   server.clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(snapshot);
     }
   });
-}, 50);
+}, 33);
 
 function playerTotal() {
   playerCount = Object.keys(players).length;
