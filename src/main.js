@@ -188,10 +188,10 @@ socket.addEventListener('message', event => {
 
        // Update position
        const opponentBat = opponentBats[playerId];
-       opponentBat.position.set( pos.x,pos.y,pos.z);
+       opponentBat.position.set( pos.x,pos.y,-pos.z);
  
        // Optional: make them look at same point
-       opponentBat.lookAt(rotationTargetPlayer);
+       opponentBat.lookAt(rotationTargetOpposition);
        opponentBat.rotateX(-Math.PI / 2);
        opponentBat.rotateY(Math.PI / 2);
 
@@ -278,6 +278,7 @@ const quaternion = new THREE.Quaternion();
 
 let targetZ=9; //TargetZ used to decide the z value the bat is placed on.
 let rotationTargetPlayer = new THREE.Vector3(0,0,targetZ+.25);
+let rotationTargetOpposition = new THREE.Vector3(0,0,-(targetZ+.25));
 var vec = new THREE.Vector3(); // create once and reuse
 var pos = new THREE.Vector3(); // create once and reuse
 
