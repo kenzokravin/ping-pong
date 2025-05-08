@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "vite"
+    "dev": "vite",
+    "ws": "node server.js"
+
   },
   "repository": {
     "type": "git",
@@ -20,11 +22,10 @@
   "homepage": "https://github.com/kenzokravin/ping-pong#readme",
   "dependencies": {
     "cannon-es": "^0.20.0",
-    "three": "^0.176.0"
+    "three": "^0.176.0",
+    "ws": "^8.18.2"
   },
   "devDependencies": {
     "vite": "^6.3.5"
   }
-
-  
 }

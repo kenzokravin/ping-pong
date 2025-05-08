@@ -3,6 +3,29 @@ import * as CANNON from 'cannon-es';
 
 import { GLTFLoader, RGBELoader } from 'three/examples/jsm/Addons.js';
 
+//Ws setup
+
+const socket = new WebSocket('ws://localhost:8080');
+
+let id;
+let players;
+
+//---- WS Event listeners.
+
+socket.addEventListener('message', event => {
+  const data = JSON.parse(event.data);
+
+  if (data.type === 'init') {
+    id = data.id;
+    console.log(data.playerData);
+  } else if (data.type === 'state') {
+    players = data.players; //This is receiving info about all players.
+    //console.log(players);
+  }
+});
+
+
+
 //---- Scene setup
 const gltfloader = new GLTFLoader();
 const rgbeLoader = new RGBELoader();
