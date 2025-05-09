@@ -21,7 +21,7 @@ let playerPosition;
 let ball={x:0,y:4,z:0};
 let isBallMoving = false;
 let startTime = Date.now();
-let targetPos = {x:0,y:3,z:-13} ; //new THREE.Vector3(3, 0, 18); // Target position
+let targetPos = {x:0,y:3,z:-9.5} ; //new THREE.Vector3(3, 0, 18); // Target position
 let startPos = {x:0,y:3,z:0}; ;// ballBody.position.clone();
 let flightDuration = 7; // Duration for the ball's path (seconds), this will decrease as game goes on to increase pace of play.
 
@@ -180,7 +180,7 @@ function startBallPath() {
   startTime = Date.now();
   startPos = {x:ball.x,y:ball.y,z:ball.z}; //Start pos takes ball pos at moment of collision.
   ballBody.velocity.set(0, 0, 0); // Stop any current movement
-  targetPos.z = !targetPos.z; //Setting targetPos to opposite, to allow hit. This is just for testing.
+  targetPos.z = -targetPos.z; //Setting targetPos to opposite, to allow hit. This is just for testing.
 
   //animateBallPath();
 }
@@ -203,7 +203,7 @@ function execBallPath() {
   ball.y = curvePos.y;
   ball.z = curvePos.z;
 
-  //console.log("Ball moving..." + ball.z);
+  //console.log("Ball moving..." + ball.x);
   syncBall(); //Syncing physBall with serverBall.
   
 
@@ -226,6 +226,8 @@ function syncBall() {
   ballBody.position.x = ball.x;
   ballBody.position.y = ball.y;
   ballBody.position.z = ball.z;
+
+  console.log("Ball moving..." + ballBody.position);
 }
 
 //Adding event listener for ball hit.
