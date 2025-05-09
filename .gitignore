@@ -8,3 +8,7 @@
 *.mp3
 *.wav
 node_modules/
+
+# Added by cargo
+
+/target

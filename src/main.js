@@ -6,7 +6,9 @@ import { GLTFLoader, RGBELoader } from 'three/examples/jsm/Addons.js';
 
 //Ws setup
 
-const socket = new WebSocket('ws://localhost:8080');
+//const socket = new WebSocket('ws://localhost:8080'); //Js setup.
+
+const socket = new WebSocket("ws://127.0.0.1:3000/ws");
 
 let id;
 let players;

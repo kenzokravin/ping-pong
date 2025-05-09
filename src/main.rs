@@ -1,0 +1,235 @@
+use axum::{
+    extract::ws::{Message, WebSocket, WebSocketUpgrade},
+    response::IntoResponse,
+    routing::get,
+    Router,
+};
+use tokio::sync::broadcast;
+use uuid::Uuid;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use rapier3d::prelude::*;
+use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
+use std::collections::HashMap;
+
+#[tokio::main]
+async fn main() {
+
+    //'::' is a path seperator, used to access items (functions,structs,traits,constants etc)
+    //within modules,types or namespaces. Very similar to the dot access in js/py.
+    // It is used on types to call something on the type itself, not an instance.
+    //In modules (above), it is used to access items such as structs at the path (e.g. std -> sync -> Arc)
+    //Dot access (.) is used to for instance-level method calls. 
+
+    // Create the physics world
+     let physics_world = Arc::new(Mutex::new(PhysicsWorld::new()));
+     // Code explained:
+     //PhysicsWorld::new() == struct constructor for a new instance of physics world.
+     //Mutex::new == ensures only one thread can modify or read the physics world at any time.
+     // This is important as it is a shared mutable (editable) environment.
+     //Arc::new == is a thread-safe reference counter. Means that it can allow multiple threads or
+     //async tasks to share ownership of the same data. Without arc, data could not pass between 
+     //threads as Rust's ownership model prevents moving data across threads.
+
+     //TL:DR, Rust prevents threads touching same data. Arc allows multiple to touch same data
+     //Mutex ensures only 1 at a time. physics world is a readable/editable physics world.
+
+    // Create a router with the WebSocket endpoint
+    let (tx,_rx) = broadcast::channel(16); //creating channel
+    //This essential means that the channel has a cap of 16 messages, this means that when 16 new messages come, the rest are dropped.
+    //This is a trade off for performance and memory. Too low and less updates. Too high and too much memory.
+    let tx_clone = tx.clone();
+    //This creates a clone of the sender handle.
+
+    
+
+
+     let app = Router::new().route("/ws", get(move |ws: WebSocketUpgrade| {
+         let tx = tx_clone.clone();
+
+         let physics_world = physics_world.clone();
+         async move { ws.on_upgrade(move |socket| handle_socket(socket, physics_world,tx)) }
+     }));
+
+     //This creates a new axum router and adds a new route "/ws"
+     //the physics world is cloned so that this closure gets its own copy of Arc
+     //necessary as the closure is move which takes ownership of the vars it uses, but we want
+     //to keep the og physics_world alive elsewhere too.
+     //Async move upgrades the http connection to ws.
+     //move socket is an async closure that gets called with the new websocket connection.
+     //inside this, we call handle_socket, passing it the socket and the cloned phys world.
+
+     //closure is like a function that sees it's surrounding scope, so in this case, async move, can see
+     //the physics world because it is a closure. (this being the move ws: websocket).
+
+     //In this context, get is a func that takes a closure/func, defining how to respond to GET requests.
+     //move tells Rust to move ownership of any used var into the closure.
+
+    // Run the server
+     let addr = "127.0.0.1:3000".parse().unwrap();
+     //IP is localhost using port 3000.
+     // For LAN, change to "0.0.0.0:3000" as this is local network.
+     // Other devices can join using local IP address like: 192.168.x.x:3000
+
+     //For public hosting:
+     // Change to 0 as well and ensure port 3000 is open in server firewall.
+
+
+     println!("Running WebSocket server on ws://{}", addr);
+     axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+         .await
+         .unwrap();
+
+     //Is the axum server being launched.
+     // .parse() parses string into a socket address
+     //axum::Server::bind, binds the server to the specific IP and port.
+     //.serve(app.into_make_service()) , app is the router, this converts the router into a
+     //format the server can understand for handling incoming http requests.
+     //.await tells rust to wait asynchronously for the server to run.
+     //It doesn't block the thread in synchronous code - other async tasks can still run.
+     //.unwrap() , if something goes wrong, this will panic and print the error.
+
+     println!("Successfully created server.");
+
+     tokio::spawn(async move {
+    let mut interval = tokio::time::interval(std::time::Duration::from_millis(33)); //This decides tick rate (fps)
+    loop {
+        interval.tick().await;
+
+        let mut world = physics_world_clone.lock().await;
+        world.step(1.0 / 30.0); // Advance physics
+
+        // Extract ball position
+        if let Some(ball_body) = world.world.get(world.ball_handle) {
+            let position = ball_body.translation();
+            let velocity = ball_body.linvel();
+
+            let state = serde_json::json!({
+                "type": "ball_state",
+                "pos": [position.x, position.y, position.z],
+                "vel": [velocity.x, velocity.y, velocity.z]
+            });
+
+            let _ = tx_clone.send(state.to_string()); // broadcast to clients
+        }
+    }
+});
+
+
+}
+
+
+async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWorld>>) {
+
+    //creating and assigning new playerID
+     let player_id = Uuid::new_v4();
+
+      // Add their paddle to the physics world
+      // This code means that it waits until the thread gets exclusive access to physics_world
+      // It then gives a mutable reference, so that the world.add_player() can be added.
+      //without mutex (ensuring only 1 can access) then more than 1 player could alter the physics world at once.
+    {
+        let mut world = physics_world.lock().await;
+        world.add_player(player_id);
+    }
+
+    println!("Player {} connected", player_id);
+
+    let mut send_socket = socket.clone();
+    tokio::spawn(async move {
+        while let Ok(message) = rx.recv().await {
+            if send_socket.send(Message::Text(message)).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    while let Some(Ok(msg)) = socket.recv().await {
+        match msg {
+            Message::Text(text) => {
+                // Handle incoming message (e.g., player move)
+                println!("Received message: {}", text);
+                // TODO: Parse and update paddle position
+            }
+            Message::Close(_) => {
+                // Handle closing the WebSocket connection
+                println!("Connection closed");
+                break;
+            }
+            _ => {}
+        }
+    }
+}
+
+// Simple physics world struct to hold the rapier world
+//This is used to create our own world in the main() function.
+struct PhysicsWorld {
+    world: RigidBodySet,
+    colliders: ColliderSet,
+    gravity: Vector3<f32>,
+    player_map: HashMap<Uuid,RigidBodyHandle>,
+    collider_map: HashMap<ColliderHandle, Uuid>, //Reverse lookup for collision detect.
+    ball_handle: RigidBodyHandle,
+}
+
+impl PhysicsWorld {
+    fn new() -> Self {
+        let mut world = RigidBodySet::new(); //creating empty collections.
+        let mut colliders = ColliderSet::new();
+
+        // You could initialize the world with some simple objects, like paddles and ball
+        let ball = RigidBodyBuilder::new_dynamic()
+            .translation(Vector3::new(0.0, 0.0, 0.0))
+            .build();
+        let ball_collider = ColliderBuilder::ball(0.1).build();
+        colliders.insert(ball_collider);
+        let ball_handle = world.insert(ball);
+
+
+        //This is outputting the physics world as it's return variable using the struct.
+        PhysicsWorld {
+            world,
+            colliders,
+            gravity: Vector3::new(0.0, 0.0, 0.0), //No gravity as all the directions are controlled programatically.
+            //Could potentially add gravity later though.
+            player_map: HashMap::new(),
+            collider_map: HashMap::new(),
+            ball_handle,
+        }
+    }
+
+    fn step(&mut self, dt: f32) {
+        let gravity = self.gravity;
+        let integration_parameters = IntegrationParameters {
+            dt: dt,
+            ..Default::default()
+        };
+        let mut solver = ImpulseSolver::new();
+        self.world.step(&gravity, &integration_parameters, &mut solver);
+    }
+
+    fn add_player(&mut self, player_id: Uuid)   {
+        //&mut self just allows the function to reference it's var (in this case being physics world)
+        //This allows us to make changes to the collections such as world, and colliders etc
+        //player_id is just the unique player id and it's type.
+
+        let player_body = RigidBodyBuilder::new_kinematic_position_based()
+            .translation(vector![0.0, 0.0, 0.0]) // Starting position
+            .build();
+        let player_body_handle = self.world.insert(player_body);
+
+        let player_collider = ColliderBuilder::cylinder(0.05, 0.5).build();
+        self.colliders.insert_with_parent(player_collider, player_body_handle, &mut self.world);
+
+
+        //tracking player bodies
+        self.player_map.insert(player_id,player_body_handle);
+        //tracking player colliders
+        self.collider_map.insert(player_collider,player_id);
+
+        // You could store paddle_handle in a map if you want to track per-player paddles
+    }
+
+}
+
