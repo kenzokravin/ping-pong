@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
+import CannonDebugger from 'cannon-es-debugger';
 
 import { GLTFLoader, RGBELoader } from 'three/examples/jsm/Addons.js';
 
@@ -46,14 +47,14 @@ let rotationTargetOpposition = new THREE.Vector3(0,0,-(targetZ+.25));
 
 //---- Cannon physics world setup
 const world = new CANNON.World();
-world.gravity.set(0, -9.82, 0); // gravity in y-axis
+world.gravity.set(0, 0, 0); // gravity in y-axis
 
 //---- Bat and ball setup in Three.js and Cannon
 const tableGeometry = new THREE.BoxGeometry(tableWidth, 0.1, 16);
 const batMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 const bat = new THREE.Mesh(tableGeometry, batMaterial);
 bat.position.set(0, 1, 0);
-scene.add(bat);
+//scene.add(bat);
 
 
 playerTableTarget= new THREE.Vector3(0,.05,-8);
@@ -65,7 +66,7 @@ const tableBody = new CANNON.Body({
   position: new CANNON.Vec3(0, 1, 0),
 });
 tableBody.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 0.05, 0.15)));
-world.addBody(tableBody);
+//world.addBody(tableBody);
 
 // ----Loading Bat
 
@@ -108,10 +109,10 @@ rgbeLoader.load('src/brown_photostudio_02_2k.hdr', function (texture) {
 
 
       const cannonCylinder = new CANNON.Cylinder(0.75, 0.75, 0.1, 8);
-      const q = new CANNON.Quaternion();
-      q.setFromEuler(Math.PI / 2, 0, 0); // Rotate 90 degrees around X
+     // const q = new CANNON.Quaternion();
+      //q.setFromEuler(Math.PI / 2, 0, 0); // Rotate 90 degrees around X
 
-      cannonCylinder.transformAllPoints(new CANNON.Vec3(), q); // Apply the rotation to the shape
+      //cannonCylinder.transformAllPoints(new CANNON.Vec3(), q); // Apply the rotation to the shape
 
       const size = new THREE.Vector3();
       box.getSize(size);
@@ -125,6 +126,8 @@ rgbeLoader.load('src/brown_photostudio_02_2k.hdr', function (texture) {
         position: new CANNON.Vec3(model.position.x, model.position.y, model.position.z),
         shape: cannonCylinder
       });
+
+      playerBatBody.quaternion.setFromEuler(Math.PI / 2, 0, 0);
     
       world.addBody(playerBatBody);
 
@@ -143,7 +146,7 @@ scene.add(ball);
 
 //---- Create a physics body for the ball
 const ballBody = new CANNON.Body({
-  mass: 0.05,
+  mass: 0.001,
   position: new CANNON.Vec3(0, 6, 0),
 });
 ballBody.addShape(new CANNON.Sphere(0.2));
@@ -214,7 +217,7 @@ socket.addEventListener('message', event => {
     }
 
   //Render ball
-  console.log(data.ball);
+ // console.log(data.ball);
 
   if (!ball) {
     return;
@@ -231,6 +234,12 @@ socket.addEventListener('message', event => {
 
 
   sBallMesh.position.set(sBall.x,sBall.y,sBall.z);
+  ballBody.position.x = sBall.x;
+  ballBody.position.y = sBall.y;
+  ballBody.position.z = sBall.z;
+
+  //console.log("Ball: " + ballBody.position + " Paddle: " + playerBatBody.position);
+  
 
   }
 });
@@ -258,13 +267,18 @@ function setSide(side) {
 // ----Detect collision and trigger animation
 world.addEventListener("postStep", () => {
   const dist = ballBody.position.distanceTo(playerBatBody.position);
-  if (dist < .70) {
+  if (dist < .10) {
     //shotHit();
    // triggerBallAnimation();
     
-    console.log("hit player bat");
+    //console.log("hit player bat");
   }
 });
+
+const cannonDebugger = CannonDebugger(scene, world, {
+  color: 0x00ffaa, // optional
+});
+
 
 //document.addEventListener("mousedown",triggerBallAnimationStart);
 //document.addEventListener("mouseup",triggerBallAnimation);
@@ -391,7 +405,7 @@ function updatePlayerPosition() {
   // Move towards the target
   currentPosition.lerp(targetPosition, lerpSpeed);
   playerBat.position.copy(currentPosition);
-  playerBatBody.position.copy(currentPosition);
+  //playerBatBody.position.copy(currentPosition);
 
 //Rotating towards base.
    playerBat.lookAt(rotationTargetPlayer);
@@ -399,8 +413,8 @@ function updatePlayerPosition() {
     playerBat.rotateY(Math.PI/2);
 
    //Rotate collision mesh
-   playerBatBody.position.copy(currentPosition);
-  playerBatBody.quaternion.copy(playerBat);
+   //playerBatBody.position.copy(currentPosition);
+ // playerBatBody.quaternion.copy(playerBat);
 
  // let direction = new THREE.Vector3().subVectors(rotationTargetPlayer, currentPosition);
  // direction.normalize();
@@ -409,15 +423,17 @@ function updatePlayerPosition() {
   
   let cylinderCopy = currentPosition;
 
-  cylinder.position.copy(cylinderCopy);
+  //cylinder.position.copy(cylinderCopy);
   cylinder.lookAt(rotationTargetPlayer);
 
   //console.log(rotationTargetPlayer);
    
   cylinder.rotateZ(Math.PI/2);
 
-  playerBatBody.position.copy(cylinderCopy);
-  playerBatBody.quaternion.copy(cylinder);
+  playerBatBody.position.x = playerBat.position.x;
+  playerBatBody.position.y = playerBat.position.y;
+  playerBatBody.position.z = playerBat.position.z;
+  //playerBatBody.quaternion.copy(cylinder);
 
   //Loading positional data from player to send to websocket so other players can render.
   dx=currentPosition.x;
@@ -427,6 +443,21 @@ function updatePlayerPosition() {
   socket.send(JSON.stringify({ type: 'move', dx, dy ,dz}));
    
 }
+
+
+ballBody.addEventListener('collide', function (event) {
+  const otherBody = event.body;
+
+  //This listener works by checking the event body against the player body list.
+  console.log("hit other body!!");
+
+  // if (otherBody === playerBatBody) {
+  //   shotHit();
+  //   triggerBallAnimation();
+  //   console.log('Ball hit player bat');
+  // }
+});
+
 
 function shotHit() {
   //----This is the shot return function. Takes a randomized target on the table (vector3) and then creates a curve towards it.
@@ -456,16 +487,17 @@ function animate() {
 
 
 
-  bat.position.copy(tableBody.position);
+  //bat.position.copy(tableBody.position);
 
   // bat.position.x = mouse.x;
   // bat.position.y = mouse.y;
  // bat.rotation.setFromRotationMatrix(batBody.quaternion);
 
- //playerBat.position.x = mouse.x;
- //playerBat.position.y = mouse.y;
+//  playerBatBody.position.x = 3;
+//  playerBatBody.position.y = 3;
 
  updatePlayerPosition();
+ cannonDebugger.update();
 
   renderer.render(scene, camera);
 }

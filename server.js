@@ -21,8 +21,8 @@ let playerPosition;
 let ball={x:0,y:4,z:0};
 let isBallMoving = false;
 let startTime = Date.now();
-let targetPos = {x:0,y:4.5,z:-13} ; //new THREE.Vector3(3, 0, 18); // Target position
-let startPos = {x:0,y:4.5,z:0}; ;// ballBody.position.clone();
+let targetPos = {x:0,y:3,z:-13} ; //new THREE.Vector3(3, 0, 18); // Target position
+let startPos = {x:0,y:3,z:0}; ;// ballBody.position.clone();
 let flightDuration = 7; // Duration for the ball's path (seconds), this will decrease as game goes on to increase pace of play.
 
 
@@ -94,7 +94,7 @@ server.on('connection', socket => {
             element.position.y = player.y;
             element.position.z = player.z;
 
-            //console.log("Moving PhysBody of:" + player.pNum);
+           // console.log("Moving PhysBody of:" + player.pNum + " position: " + element.position);
           }
           
         });
@@ -168,8 +168,8 @@ function createPaddleBodyForIndex(index) {
   // const body = new CANNON.Body({ mass: 0 });
   // body.addShape(paddleShape);
 
-  if (index === 1) playerBatBody.position.set(-5, 0, 0); // Player 1
-  if (index === 2) playerBatBody.position.set(5, 0, 0);  // Player 2
+  if (index === 1) playerBatBody.position.set(0, 0, 0); // Player 1
+  if (index === 2) playerBatBody.position.set(0, 0, 0);  // Player 2
 
   return playerBatBody;
 }
@@ -203,8 +203,9 @@ function execBallPath() {
   ball.y = curvePos.y;
   ball.z = curvePos.z;
 
-  console.log("Ball moving..." + ball.z);
+  //console.log("Ball moving..." + ball.z);
   syncBall(); //Syncing physBall with serverBall.
+  
 
   //requestAnimationFrame(animateBallPath); //This is used on the client-side to render the ball. Not a server-side function.
 }
