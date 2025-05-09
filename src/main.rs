@@ -97,11 +97,12 @@ async fn main() {
     loop {
         interval.tick().await;
 
-        let mut world = physics_world_clone.lock().await;
+        let mut world = physics_world.lock().await;
         world.step(1.0 / 30.0); // Advance physics
 
         // Extract ball position
-        if let Some(ball_body) = world.world.get(world.ball_handle) {
+        if let Some(ball_body) = world.world.get(world.ball_handle) { // Some() is used if a val may or may not exist.
+            //world.world.get is calling the physics world obj, then navigating to world in the struct, then using .get to search for the ball_handle (also a val in the struct)
             let position = ball_body.translation();
             let velocity = ball_body.linvel();
 
