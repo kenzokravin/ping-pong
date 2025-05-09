@@ -28,11 +28,11 @@ let flightDuration = 7; // Duration for the ball's path (seconds), this will dec
 
 //---- Cannon physics world setup
 const world = new CANNON.World();
-world.gravity.set(0, -9.82, 0); // gravity in y-axis
+world.gravity.set(0, 0, 0); // gravity in y-axis
 
 //---- Create a physics body for the ball
 const ballBody = new CANNON.Body({
-  mass: 0.05,
+  mass: 0.001,
   position: new CANNON.Vec3(0, 6, 0),
 });
 ballBody.addShape(new CANNON.Sphere(0.2));
@@ -120,7 +120,7 @@ setInterval(() => {
   //From here, we determine the x,y,z coords of the table.
   //Every time the player "hits" we receive msg, from here, calculate the next "bounce","spin" and "end point".
   //Then we create a curve path to calculate across the interval.
-
+  world.step(1 / 60);
 
   execBallPath();
 
@@ -232,6 +232,8 @@ function syncBall() {
 ballBody.addEventListener('collide', function (event) {
   const otherBody = event.body;
 
+  console.log('Ball hit!!!!!!!!!');
+
   //This listener works by checking the event body against the player body list.
   for(let i = 0; i < playerBodies.length;i++) {
     if (playerBodies[i] === otherBody) {
@@ -248,3 +250,22 @@ ballBody.addEventListener('collide', function (event) {
   //   console.log('Ball hit player bat');
   // }
 });
+
+
+//This is for testing collision, not acceptable on server.
+// world.addEventListener("postStep", () => {
+//   playerBodies.forEach(element => {
+
+    
+//       const dist = ballBody.position.distanceTo(element.position);
+
+//       console.log("Moving PhysBody of:" + ballBody + " position: " 
+//         + element.position + " dist:" + dist);
+    
+    
+//   });
+
+//   console.log("post-steop");
+
+  
+// });

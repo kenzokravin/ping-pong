@@ -151,7 +151,7 @@ const ballBody = new CANNON.Body({
 });
 ballBody.addShape(new CANNON.Sphere(0.2));
 world.addBody(ballBody);
-ballBody.velocity.set(0,-15,0);
+//ballBody.velocity.set(0,-15,0);
 
 //---- Set camera position
 camera.position.z = cameraDist;
