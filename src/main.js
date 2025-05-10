@@ -164,6 +164,12 @@ camera.position.y = 3;
 socket.addEventListener('message', event => {
   const data = JSON.parse(event.data);
 
+  if(data.type === 'ball_state' ) {
+    console.log("ball state: " + data);
+
+  }
+
+
   if (data.type === 'init') {
     id = data.id;
     //console.log(data.playerPosition); //This finds what order the player joins the server and how to broadcast others.

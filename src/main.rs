@@ -12,8 +12,13 @@ use rapier3d::prelude::*;
 use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
 use std::collections::HashMap;
 
+mod physics; //importing all code in /physics
+use physics::PhysicsWorld;
+
 #[tokio::main]
 async fn main() {
+
+    println!("Main Fn Started in main.rs");
 
     //'::' is a path seperator, used to access items (functions,structs,traits,constants etc)
     //within modules,types or namespaces. Very similar to the dot access in js/py.
@@ -90,13 +95,14 @@ async fn main() {
      //It doesn't block the thread in synchronous code - other async tasks can still run.
      //.unwrap() , if something goes wrong, this will panic and print the error.
 
-     println!("Successfully created server.");
+     
 
      tokio::spawn(async move {
-    let mut interval = tokio::time::interval(std::time::Duration::from_millis(33)); //This decides tick rate (fps)
+    let mut interval = tokio::time::interval(std::time::Duration::from_millis(33)); //This decides tick rate (fps) (~30fps)
     loop {
         interval.tick().await;
 
+        //wait for the world to be freed up and to access.
         let mut world = physics_world.lock().await;
         world.step(1.0 / 30.0); // Advance physics
 
@@ -121,7 +127,7 @@ async fn main() {
 }
 
 
-async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWorld>>) {
+async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWorld>>, tx:broadcast::Sender<String>) {
 
     //creating and assigning new playerID
      let player_id = Uuid::new_v4();
@@ -149,8 +155,16 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
     while let Some(Ok(msg)) = socket.recv().await {
         match msg {
             Message::Text(text) => {
-                // Handle incoming message (e.g., player move)
+
                 println!("Received message: {}", text);
+
+
+
+
+
+
+                // Handle incoming message (e.g., player move)
+                
                 // TODO: Parse and update paddle position
             }
             Message::Close(_) => {
@@ -163,74 +177,74 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
     }
 }
 
-// Simple physics world struct to hold the rapier world
-//This is used to create our own world in the main() function.
-struct PhysicsWorld {
-    world: RigidBodySet,
-    colliders: ColliderSet,
-    gravity: Vector3<f32>,
-    player_map: HashMap<Uuid,RigidBodyHandle>,
-    collider_map: HashMap<ColliderHandle, Uuid>, //Reverse lookup for collision detect.
-    ball_handle: RigidBodyHandle,
-}
+// // Simple physics world struct to hold the rapier world
+// //This is used to create our own world in the main() function.
+// struct PhysicsWorld {
+//     world: RigidBodySet,
+//     colliders: ColliderSet,
+//     gravity: Vector3<f32>,
+//     player_map: HashMap<Uuid,RigidBodyHandle>,
+//     collider_map: HashMap<ColliderHandle, Uuid>, //Reverse lookup for collision detect.
+//     ball_handle: RigidBodyHandle,
+// }
 
-impl PhysicsWorld {
-    fn new() -> Self {
-        let mut world = RigidBodySet::new(); //creating empty collections.
-        let mut colliders = ColliderSet::new();
+// impl PhysicsWorld {
+//     fn new() -> Self {
+//         let mut world = RigidBodySet::new(); //creating empty collections.
+//         let mut colliders = ColliderSet::new();
 
-        // You could initialize the world with some simple objects, like paddles and ball
-        let ball = RigidBodyBuilder::new_dynamic()
-            .translation(Vector3::new(0.0, 0.0, 0.0))
-            .build();
-        let ball_collider = ColliderBuilder::ball(0.1).build();
-        colliders.insert(ball_collider);
-        let ball_handle = world.insert(ball);
-
-
-        //This is outputting the physics world as it's return variable using the struct.
-        PhysicsWorld {
-            world,
-            colliders,
-            gravity: Vector3::new(0.0, 0.0, 0.0), //No gravity as all the directions are controlled programatically.
-            //Could potentially add gravity later though.
-            player_map: HashMap::new(),
-            collider_map: HashMap::new(),
-            ball_handle,
-        }
-    }
-
-    fn step(&mut self, dt: f32) {
-        let gravity = self.gravity;
-        let integration_parameters = IntegrationParameters {
-            dt: dt,
-            ..Default::default()
-        };
-        let mut solver = ImpulseSolver::new();
-        self.world.step(&gravity, &integration_parameters, &mut solver);
-    }
-
-    fn add_player(&mut self, player_id: Uuid)   {
-        //&mut self just allows the function to reference it's var (in this case being physics world)
-        //This allows us to make changes to the collections such as world, and colliders etc
-        //player_id is just the unique player id and it's type.
-
-        let player_body = RigidBodyBuilder::new_kinematic_position_based()
-            .translation(vector![0.0, 0.0, 0.0]) // Starting position
-            .build();
-        let player_body_handle = self.world.insert(player_body);
-
-        let player_collider = ColliderBuilder::cylinder(0.05, 0.5).build();
-        self.colliders.insert_with_parent(player_collider, player_body_handle, &mut self.world);
+//         // You could initialize the world with some simple objects, like paddles and ball
+//         let ball = RigidBodyBuilder::new_dynamic()
+//             .translation(Vector3::new(0.0, 0.0, 0.0))
+//             .build();
+//         let ball_collider = ColliderBuilder::ball(0.1).build();
+//         colliders.insert(ball_collider);
+//         let ball_handle = world.insert(ball);
 
 
-        //tracking player bodies
-        self.player_map.insert(player_id,player_body_handle);
-        //tracking player colliders
-        self.collider_map.insert(player_collider,player_id);
+//         //This is outputting the physics world as it's return variable using the struct.
+//         PhysicsWorld {
+//             world,
+//             colliders,
+//             gravity: Vector3::new(0.0, 0.0, 0.0), //No gravity as all the directions are controlled programatically.
+//             //Could potentially add gravity later though.
+//             player_map: HashMap::new(),
+//             collider_map: HashMap::new(),
+//             ball_handle,
+//         }
+//     }
 
-        // You could store paddle_handle in a map if you want to track per-player paddles
-    }
+//     fn step(&mut self, dt: f32) {
+//         let gravity = self.gravity;
+//         let integration_parameters = IntegrationParameters {
+//             dt: dt,
+//             ..Default::default()
+//         };
+//         let mut solver = ImpulseSolver::new();
+//         self.world.step(&gravity, &integration_parameters, &mut solver);
+//     }
 
-}
+//     fn add_player(&mut self, player_id: Uuid)   {
+//         //&mut self just allows the function to reference it's var (in this case being physics world)
+//         //This allows us to make changes to the collections such as world, and colliders etc
+//         //player_id is just the unique player id and it's type.
+
+//         let player_body = RigidBodyBuilder::new_kinematic_position_based()
+//             .translation(vector![0.0, 0.0, 0.0]) // Starting position
+//             .build();
+//         let player_body_handle = self.world.insert(player_body);
+
+//         let player_collider = ColliderBuilder::cylinder(0.05, 0.5).build();
+//         self.colliders.insert_with_parent(player_collider, player_body_handle, &mut self.world);
+
+
+//         //tracking player bodies
+//         self.player_map.insert(player_id,player_body_handle);
+//         //tracking player colliders
+//         self.collider_map.insert(player_collider,player_id);
+
+//         // You could store paddle_handle in a map if you want to track per-player paddles
+//     }
+
+// }
 
