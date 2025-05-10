@@ -81,7 +81,7 @@ async fn main() {
 
 
      println!("Running WebSocket server on ws://{}", addr);
-     axum::Server::bind(&addr)
+     axum::bind(&addr)
         .serve(app.into_make_service())
          .await
          .unwrap();
