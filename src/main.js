@@ -167,6 +167,8 @@ socket.addEventListener('message', event => {
   console.log("Raw message:", event.data);
   
   if(data.type === 'ball_state' ) {
+
+    //Working...
     console.log("ball state: " + data);
 
   }
