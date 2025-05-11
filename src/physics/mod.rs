@@ -28,7 +28,8 @@ pub struct PhysicsWorld {
     pub event_handler: Box<dyn EventHandler + Send + Sync>,
     pub gravity: Vector<f32>,
     pub player_map: HashMap<Uuid,RigidBodyHandle>,
-    pub collider_map: HashMap<ColliderHandle, Uuid>, //Reverse lookup for collision detect.
+    pub collider_map: HashMap<ColliderHandle, Uuid>, 
+    pub player_collider_map: HashMap<Uuid, ColliderHandle>,//Reverse lookup for collision detect.
     pub ball_handle: RigidBodyHandle,
 }
 
@@ -83,6 +84,7 @@ impl PhysicsWorld {
             //Could potentially add gravity later though.
             player_map: HashMap::new(),
             collider_map: HashMap::new(),
+            player_collider_map: HashMap::new(),
             ball_handle,
         }
 
@@ -158,10 +160,57 @@ impl PhysicsWorld {
 
         //tracking player bodies
         self.player_map.insert(player_id,player_body_handle);
-        //tracking player colliders
+        //tracking player colliders, this is used for determining which player is involved in collision based of the collider handle.
         self.collider_map.insert(player_collider_handle,player_id);
+
+        self.player_collider_map.insert(player_id,player_collider_handle);
+
+        println!("Player added to physics world: {}",player_id);
 
         // You could store paddle_handle in a map if you want to track per-player paddles
     }
 
+    pub fn remove_player(&mut self, player_id:Uuid) {
+
+        let player_body_handle = self.player_map.get(&player_id).copied().unwrap();
+
+        if let Some(&body_handle) = self.player_map.get(&player_id) 
+        {
+            // Remove the rigid body and associated colliders
+            let colliders_removed = self.world.remove(
+                body_handle,
+                &mut self.island_manager,
+                &mut self.colliders,
+                &mut self.impulse_joint_set,
+                &mut self.multibody_joint_set,
+                true, // auto-remove attached colliders
+            );
+
+            // Remove tracking info
+            self.player_map.remove(&player_id);
+
+            //must remove tracking info from collider map.
+        
+            let player_collider_handle = self.player_collider_map.get(&player_id).copied().unwrap();
+            self.collider_map.remove(&player_collider_handle);
+            self.player_collider_map.remove(&player_id);
+       
+           
+            for (key, value) in &self.collider_map {
+                    println!("Key: {:?}, Value: {:?}", key, value);
+            }
+    
+
+            println!("Player removed from physics world: {}", player_id);
+        } else {
+            println!("Tried to remove non-existent player: {}", player_id);
+        }
+
+
+    }
+
+ 
+
+
 }
+

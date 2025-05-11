@@ -1,3 +1,8 @@
+//To run rust local
+//run "cargo run"
+//open client.
+
+
 use axum::{
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::IntoResponse,
@@ -182,7 +187,7 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
         match msg {
             Message::Text(text) => {
 
-                println!("Received message: {}", text);
+               // println!("Received message: {}", text);
 
 
 
@@ -195,6 +200,11 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
             }
             Message::Close(_) => {
                 // Handle closing the WebSocket connection
+                {
+                    let mut world = physics_world.lock().await;
+                    world.remove_player(player_id);
+                }
+
                 println!("Connection closed");
                 break;
             }
