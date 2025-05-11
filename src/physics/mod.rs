@@ -4,6 +4,7 @@
 
 
 use rapier3d::prelude::*;
+use crate::nalgebra::Vector3;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -15,12 +16,14 @@ pub struct PhysicsWorld {
     pub colliders: ColliderSet,
     pub physics_pipeline: PhysicsPipeline,
     pub island_manager: IslandManager,
-    pub broad_phase: DefaultBroadPhase,
+    pub broad_phase: BroadPhase,
     pub narrow_phase: NarrowPhase,
     pub impulse_joint_set: ImpulseJointSet,
     pub multibody_joint_set: MultibodyJointSet,
     pub ccd_solver: CCDSolver,
     pub query_pipeline: QueryPipeline,
+    //pub physics_hooks: dyn PhysicsHooks,
+    //pub event_handler: dyn EventHandler,
     pub physics_hooks: Box<dyn PhysicsHooks + Send + Sync>,
     pub event_handler: Box<dyn EventHandler + Send + Sync>,
     pub gravity: Vector<f32>,
@@ -36,26 +39,29 @@ impl PhysicsWorld {
         let mut world = RigidBodySet::new(); //creating empty collections.
         let mut colliders = ColliderSet::new();
 
-        let mut physics_pipeline = PhysicsPipeline::new();
+        let physics_pipeline = PhysicsPipeline::new();
 
         // You could initialize the world with some simple objects, like paddles and ball
         let ball = RigidBodyBuilder::dynamic()
-            .translation(Vector::new(0.0, 0.0, 0.0))
+            .translation(Vector3::new(0.0, 0.0, 0.0))
             .build();
         let ball_collider = ColliderBuilder::ball(0.1).build();
         colliders.insert(ball_collider);
         let ball_handle = world.insert(ball);
 
 
-        let mut island_manager = IslandManager::new();
-        let mut broad_phase = DefaultBroadPhase::new();
-        let mut narrow_phase = NarrowPhase::new();
-        let mut impulse_joint_set = ImpulseJointSet::new();
-        let mut multibody_joint_set = MultibodyJointSet::new();
-        let mut ccd_solver = CCDSolver::new();
-        let mut query_pipeline = QueryPipeline::new();
+        let island_manager = IslandManager::new();
+        let broad_phase = BroadPhase::new();
+        let narrow_phase = NarrowPhase::new();
+        let impulse_joint_set = ImpulseJointSet::new();
+        let multibody_joint_set = MultibodyJointSet::new();
+        let ccd_solver = CCDSolver::new();
+        let query_pipeline = QueryPipeline::new();
         let physics_hooks = Box::new(());
         let event_handler = Box::new(());
+
+        //let physics_hooks = <dyn PhysicsHooks>::new();
+        //let event_handler = <dyn EventHandler>::new();
 
         println!("Outputting physics world.");
 
@@ -94,20 +100,25 @@ impl PhysicsWorld {
             ..Default::default()
         };
 
-        let island_manager = self.island_manager;
-        let broad_phase = self.broad_phase;
-        let narrow_phase = self.narrow_phase;
-        let rigid_body_set = self.world;
-        let collider_set = self.colliders;
-        let impulse_joint_set = self.impulse_joint_set;
-        let multibody_joint_set = self.multibody_joint_set;
-        let ccd_solver = self.ccd_solver;
-        let query_pipeline = self.query_pipeline;
+        let mut island_manager = self.island_manager.clone();
+        let mut broad_phase = self.broad_phase.clone();
+        let mut narrow_phase = self.narrow_phase.clone();
+        let mut rigid_body_set = self.world.clone();
+        let mut collider_set = self.colliders.clone();
+        let mut impulse_joint_set = self.impulse_joint_set.clone();
+        let mut multibody_joint_set = self.multibody_joint_set.clone();
+        let mut ccd_solver = self.ccd_solver.clone();
+        let mut query_pipeline = self.query_pipeline.clone();
 
 
         //These are wrong, need to use something different.
-        let physics_hooks = self.physics_hooks;
-        let event_handler = self.event_handler;
+        //let physics_hooks = &self.physics_hooks;
+
+        let hooks_ref: &mut dyn rapier3d::pipeline::PhysicsHooks = &mut *self.physics_hooks;
+        let event_ref: &mut dyn rapier3d::pipeline::EventHandler = &mut *self.event_handler;
+        //let event_handler = &self.event_handler;
+        //let physics_hooks = self.physics_hooks.clone();
+        //let event_handler = self.event_handler.clone();
 
 
         //let mut solver = ImpulseSolver::new();
@@ -125,8 +136,8 @@ impl PhysicsWorld {
             &mut multibody_joint_set,
             &mut ccd_solver,
             Some(&mut query_pipeline),
-            &physics_hooks,
-            &event_handler,
+            hooks_ref,
+            event_ref,
         );
     }
 

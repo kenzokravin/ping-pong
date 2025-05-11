@@ -4,6 +4,7 @@ use axum::{
     routing::get,
     Router,
 };
+use std::net::SocketAddr;
 use tokio::sync::broadcast;
 use uuid::Uuid;
 use std::sync::Arc;
@@ -14,6 +15,9 @@ use std::collections::HashMap;
 
 mod physics; //importing all code in /physics
 use physics::PhysicsWorld;
+
+use futures::{sink::SinkExt, stream::StreamExt};
+
 
 #[tokio::main]
 async fn main() {
@@ -49,12 +53,28 @@ async fn main() {
     
 
 
-     let app = Router::new().route("/ws", get(move |ws: WebSocketUpgrade| {
-         let tx = tx_clone.clone();
+    //  let app = Router::new().route("/ws", get(move |ws: WebSocketUpgrade| {
+    //      let tx = tx_clone.clone();
+    //      let rx = tx.subscribe(); 
 
-         let physics_world = physics_world.clone();
-         async move { ws.on_upgrade(move |socket| handle_socket(socket, physics_world,tx)) }
-     }));
+    //      let physics_world = physics_world.clone();
+    //      async move { ws.on_upgrade(move |socket| handle_socket(socket, physics_world,tx,rx)) }
+    //  }));
+
+    let app = Router::new().route("/ws", get({
+    let tx = tx.clone(); // clone here
+    let physics_world = physics_world.clone();
+
+    move |ws: WebSocketUpgrade| {
+        let tx = tx.clone(); // clone again here if needed
+        let rx = tx.subscribe();
+        let physics_world = physics_world.clone();
+
+        async move {
+            ws.on_upgrade(move |socket| handle_socket(socket, physics_world, tx, rx))
+        }
+    }
+}));
 
      //This creates a new axum router and adds a new route "/ws"
      //the physics world is cloned so that this closure gets its own copy of Arc
@@ -71,7 +91,8 @@ async fn main() {
      //move tells Rust to move ownership of any used var into the closure.
 
     // Run the server
-     let addr = "127.0.0.1:3000".parse().unwrap();
+    // let addr = "127.0.0.1:3000".parse().unwrap();
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
      //IP is localhost using port 3000.
      // For LAN, change to "0.0.0.0:3000" as this is local network.
      // Other devices can join using local IP address like: 192.168.x.x:3000
@@ -81,7 +102,7 @@ async fn main() {
 
 
      println!("Running WebSocket server on ws://{}", addr);
-     axum::bind(&addr)
+     axum_server::bind(addr)
         .serve(app.into_make_service())
          .await
          .unwrap();
@@ -95,7 +116,7 @@ async fn main() {
      //It doesn't block the thread in synchronous code - other async tasks can still run.
      //.unwrap() , if something goes wrong, this will panic and print the error.
 
-     
+    //  let tx = tx.clone();
 
      tokio::spawn(async move {
     let mut interval = tokio::time::interval(std::time::Duration::from_millis(33)); //This decides tick rate (fps) (~30fps)
@@ -127,7 +148,7 @@ async fn main() {
 }
 
 
-async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWorld>>, tx:broadcast::Sender<String>) {
+async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWorld>>, _tx:broadcast::Sender<String>, mut rx:broadcast::Receiver<String>) {
 
     //creating and assigning new playerID
      let player_id = Uuid::new_v4();
@@ -143,16 +164,21 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
 
     println!("Player {} connected", player_id);
 
-    let mut send_socket = socket.clone();
+    let (mut sender, mut receiver) = socket.split();
+
+    // let mut send_socket = socket.copy();
+
+    //This function creates a background async task that listens for messages on a channel and sends them over a websocket connect.
     tokio::spawn(async move {
         while let Ok(message) = rx.recv().await {
-            if send_socket.send(Message::Text(message)).await.is_err() {
+            //The following code converts the message into a websocket and attempts to send.
+            if sender.send(Message::Text(message.into())).await.is_err() {
                 break;
             }
         }
     });
 
-    while let Some(Ok(msg)) = socket.recv().await {
+    while let Some(Ok(msg)) = receiver.next().await {
         match msg {
             Message::Text(text) => {
 
