@@ -148,21 +148,23 @@ impl PhysicsWorld {
         //This allows us to make changes to the collections such as world, and colliders etc
         //player_id is just the unique player id and it's type.
 
+        //Creating and inserting player rigidBody to rigidBodySet (world).
         let player_body = RigidBodyBuilder::kinematic_position_based()
             .translation(vector![0.0, 0.0, 0.0]) // Starting position
             .build();
         let player_body_handle = self.world.insert(player_body);
 
+        //Creating bat collider, cylinder in shape. This is what will follow the player mouse and communicate "hits".
         let player_collider = ColliderBuilder::cylinder(0.05, 0.5).build();
+        //Adding collider to collider set.
         let player_collider_handle = self.colliders.insert_with_parent(player_collider, player_body_handle, &mut self.world);
 
-
-
-        //tracking player bodies
+        //Tracking player bodies using player ID, used to remove player bodies from physics world. (from rigid body set)
         self.player_map.insert(player_id,player_body_handle);
         //tracking player colliders, this is used for determining which player is involved in collision based of the collider handle.
         self.collider_map.insert(player_collider_handle,player_id);
 
+        //Tracking the player_collider handles, this enables us to remove the collider_map entry for the player_id when disconnecting. 
         self.player_collider_map.insert(player_id,player_collider_handle);
 
         println!("Player added to physics world: {}",player_id);
@@ -172,8 +174,10 @@ impl PhysicsWorld {
 
     pub fn remove_player(&mut self, player_id:Uuid) {
 
+        //Accessing player_body_handle using player_id
         let player_body_handle = self.player_map.get(&player_id).copied().unwrap();
 
+        //Accessing player_body_handle using player_id, check exist, Then remove from rigidBodySet of physics world.
         if let Some(&body_handle) = self.player_map.get(&player_id) 
         {
             // Remove the rigid body and associated colliders
@@ -186,21 +190,20 @@ impl PhysicsWorld {
                 true, // auto-remove attached colliders
             );
 
-            // Remove tracking info
+            // Remove tracking info in player_map (for rigid bodies)
             self.player_map.remove(&player_id);
 
-            //must remove tracking info from collider map.
-        
+            //Accessing collider handle, using result to remove from collider map, then removing from the joining map (player_collider_map)
             let player_collider_handle = self.player_collider_map.get(&player_id).copied().unwrap();
             self.collider_map.remove(&player_collider_handle);
             self.player_collider_map.remove(&player_id);
        
-           
+           //Prints all colliders left in collider_map.
             for (key, value) in &self.collider_map {
                     println!("Key: {:?}, Value: {:?}", key, value);
             }
     
-
+            //Print if successful.
             println!("Player removed from physics world: {}", player_id);
         } else {
             println!("Tried to remove non-existent player: {}", player_id);

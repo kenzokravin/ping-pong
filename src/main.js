@@ -164,6 +164,8 @@ camera.position.y = 3;
 socket.addEventListener('message', event => {
   const data = JSON.parse(event.data);
 
+  console.log("Raw message:", event.data);
+  
   if(data.type === 'ball_state' ) {
     console.log("ball state: " + data);
 

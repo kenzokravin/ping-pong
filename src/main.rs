@@ -11,6 +11,7 @@ use axum::{
 };
 use std::net::SocketAddr;
 use tokio::sync::broadcast;
+use tokio::time::{self, Duration};
 use uuid::Uuid;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -28,12 +29,14 @@ use futures::{sink::SinkExt, stream::StreamExt};
 async fn main() {
 
     println!("Main Fn Started in main.rs");
+    
+
 
     //'::' is a path seperator, used to access items (functions,structs,traits,constants etc)
     //within modules,types or namespaces. Very similar to the dot access in js/py.
     // It is used on types to call something on the type itself, not an instance.
     //In modules (above), it is used to access items such as structs at the path (e.g. std -> sync -> Arc)
-    //Dot access (.) is used to for instance-level method calls. 
+    //Dot access (.) is used for instance-level method calls. 
 
     // Create the physics world
      let physics_world = Arc::new(Mutex::new(PhysicsWorld::new()));
@@ -52,34 +55,24 @@ async fn main() {
     let (tx,_rx) = broadcast::channel(16); //creating channel
     //This essential means that the channel has a cap of 16 messages, this means that when 16 new messages come, the rest are dropped.
     //This is a trade off for performance and memory. Too low and less updates. Too high and too much memory.
+
     let tx_clone = tx.clone();
     //This creates a clone of the sender handle.
 
-    
-
-
-    //  let app = Router::new().route("/ws", get(move |ws: WebSocketUpgrade| {
-    //      let tx = tx_clone.clone();
-    //      let rx = tx.subscribe(); 
-
-    //      let physics_world = physics_world.clone();
-    //      async move { ws.on_upgrade(move |socket| handle_socket(socket, physics_world,tx,rx)) }
-    //  }));
-
     let app = Router::new().route("/ws", get({
-    let tx = tx.clone(); // clone here
-    let physics_world = physics_world.clone();
-
-    move |ws: WebSocketUpgrade| {
-        let tx = tx.clone(); // clone again here if needed
-        let rx = tx.subscribe();
+        let tx = tx.clone(); // clone here
         let physics_world = physics_world.clone();
 
-        async move {
-            ws.on_upgrade(move |socket| handle_socket(socket, physics_world, tx, rx))
+        move |ws: WebSocketUpgrade| {
+            let tx = tx.clone(); // clone again here if needed
+            let rx = tx.subscribe();
+            let physics_world = physics_world.clone();
+
+            async move {
+                ws.on_upgrade(move |socket| handle_socket(socket, physics_world, tx, rx))
+            }
         }
-    }
-}));
+    }));
 
      //This creates a new axum router and adds a new route "/ws"
      //the physics world is cloned so that this closure gets its own copy of Arc
@@ -104,13 +97,32 @@ async fn main() {
 
      //For public hosting:
      // Change to 0 as well and ensure port 3000 is open in server firewall.
+    
+
+    //  println!("Running WebSocket server on ws://{}", addr);
+    //  axum_server::bind(addr)
+    //     .serve(app.into_make_service())
+    //      .await
+    //      .unwrap();
+
+    //This server has to be async because of the .await and .serve
+    //As servers run indefinitely, if it was not async then it blocks the rest of main().
+    // tokio::spawn(async move {
+    //     println!("Running WebSocket server on ws://{}", addr);
+    //     axum_server::bind(addr)
+    //         .serve(app.into_make_service())
+    //         .await
+    //         .unwrap();
+    // });
 
 
-     println!("Running WebSocket server on ws://{}", addr);
-     axum_server::bind(addr)
-        .serve(app.into_make_service())
-         .await
-         .unwrap();
+
+    // println!("Running WebSocket server on ws://{}", addr);
+    // axum_server::bind(addr)
+    //     .serve(app.into_make_service())
+    //     .await
+    //     .unwrap();
+    
 
      //Is the axum server being launched.
      // .parse() parses string into a socket address
@@ -122,33 +134,51 @@ async fn main() {
      //.unwrap() , if something goes wrong, this will panic and print the error.
 
     //  let tx = tx.clone();
+   
+    let physics_world = physics_world.clone();
 
-     tokio::spawn(async move {
-    let mut interval = tokio::time::interval(std::time::Duration::from_millis(33)); //This decides tick rate (fps) (~30fps)
-    loop {
-        interval.tick().await;
+    tokio::spawn(async move {
+        let mut interval = time::interval(Duration::from_millis(33)); //This decides tick rate (fps) (~30fps)
+        //interval.tick().await;
+   
+        loop {
+          
+            interval.tick().await;
+      
+            //wait for the world to be freed up and to access.
+            
+                let mut world = physics_world.lock().await;
+                world.step(1.0 / 30.0); // Advance physics
+            
 
-        //wait for the world to be freed up and to access.
-        let mut world = physics_world.lock().await;
-        world.step(1.0 / 30.0); // Advance physics
+      
 
-        // Extract ball position
-        if let Some(ball_body) = world.world.get(world.ball_handle) { // Some() is used if a val may or may not exist.
-            //world.world.get is calling the physics world obj, then navigating to world in the struct, then using .get to search for the ball_handle (also a val in the struct)
-            let position = ball_body.translation();
-            let velocity = ball_body.linvel();
+            // Extract ball position
+            if let Some(ball_body) = world.world.get(world.ball_handle) { // Some() is used if a val may or may not exist.
+                //world.world.get is calling the physics world obj, then navigating to world in the struct, then using .get to search for the ball_handle (also a val in the struct)
+                let position = ball_body.translation();
+                let velocity = ball_body.linvel();
 
-            let state = serde_json::json!({
-                "type": "ball_state",
-                "pos": [position.x, position.y, position.z],
-                "vel": [velocity.x, velocity.y, velocity.z]
-            });
+                let state = serde_json::json!({
+                    "type": "ball_state",
+                    "pos": [position.x, position.y, position.z],
+                    "vel": [velocity.x, velocity.y, velocity.z]
+                });
 
-            let _ = tx_clone.send(state.to_string()); // broadcast to clients
+                println!("{}",state);
+
+                let _ = tx_clone.send(state.to_string()); // broadcast to clients
+            }
         }
-    }
-});
+    });
 
+
+    //Server is at bottom because it blocks the main() func from completing as .await and .serve are active indefinitely.
+     println!("Running WebSocket server on ws://{}", addr);
+    axum_server::bind(addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 
 }
 
@@ -187,8 +217,11 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
         match msg {
             Message::Text(text) => {
 
-               // println!("Received message: {}", text);
+                println!("Received message: {}", text);
 
+                //This area is where we handle player messages.
+                //Here we will control the movement of the player bodies/colliders (their phys objects.)
+                //We can also perform other stuff here (like send chat messages perhaps)
 
 
 
@@ -201,14 +234,15 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
             Message::Close(_) => {
                 // Handle closing the WebSocket connection
                 {
-                    let mut world = physics_world.lock().await;
-                    world.remove_player(player_id);
+                    let mut world = physics_world.lock().await; //Waiting for thread to gain access to phys world.
+                    world.remove_player(player_id); //Calls remove_player logic (in Physics World instance)
                 }
 
                 println!("Connection closed");
                 break;
             }
-            _ => {}
+
+            _ => {} //This takes care of all unneeded message types such as Ping and Pong (used to ignore them).
         }
     }
 }
