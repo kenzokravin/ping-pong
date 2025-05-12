@@ -42,7 +42,7 @@ impl PhysicsWorld {
 
         let physics_pipeline = PhysicsPipeline::new();
 
-        // You could initialize the world with some simple objects, like paddles and ball
+        // Init ball to be used.
         let ball = RigidBodyBuilder::dynamic()
             .translation(Vector3::new(0.0, 0.0, 0.0))
             .build();
@@ -141,6 +141,9 @@ impl PhysicsWorld {
             hooks_ref,
             event_ref,
         );
+
+        println!("Physics world Step!");
+
     }
 
     pub fn add_player(&mut self, player_id: Uuid)   {
@@ -210,6 +213,51 @@ impl PhysicsWorld {
         }
 
 
+    }
+
+    pub fn set_player_position(&mut self, player_id: Uuid, dx: f64, dy: f64, dz: f64) {
+
+        //Accessing rigid body from player.
+        if let Some(&body_handle) = self.player_map.get(&player_id) 
+        {
+
+            
+
+            let mut rigid_body = self.world.get_mut(body_handle).unwrap();
+            println!("Player body position: {}", rigid_body.translation());
+            rigid_body.set_enabled(true);
+            rigid_body.set_next_kinematic_translation(vector![dx as f32,dy as f32,dz as f32]);
+            
+
+        }
+
+    }
+
+    //Used to lerp between 2 vector3 values/positions over time t.
+    pub fn lerp_vector3(&mut self, start_vec : Vector3<f64>, end_vec:Vector3<f64>, t : f64) -> Vector3<f64> { 
+
+          start_vec + (end_vec - start_vec) * t
+
+        // let mut return_vector = Vector3::new(0.0,0.0,0.0);
+
+        // return_vector[0] = lerp_two_vals(start_vec[0],end_vec[0],t);
+        // return_vector[1] = lerp_two_vals(start_vec[1],end_vec[1],t);
+        // return_vector[2] = lerp_two_vals(start_vec[2],end_vec[2],t);
+
+        // return_vector
+
+        // return {
+        //     x: lerp(start.x, end.x, t),
+        //     y: lerp(start.y, end.y, t),
+        //     z: lerp(start.z, end.z, t)
+        // };
+        // }
+
+    }
+
+    //Used to lerp between two values over time, t.
+    pub fn lerp_two_vals(a : f64, b : f64, t: f64) -> f64 {
+        a + (b - a) * t
     }
 
  

@@ -21,7 +21,7 @@ use std::collections::HashMap;
 
 mod physics; //importing all code in /physics
 use physics::PhysicsWorld;
-
+use serde_json::Value;
 use futures::{sink::SinkExt, stream::StreamExt};
 
 
@@ -153,7 +153,7 @@ async fn main() {
 
       
 
-            // Extract ball position
+            // Extract ball position this is used to send state to client.
             if let Some(ball_body) = world.world.get(world.ball_handle) { // Some() is used if a val may or may not exist.
                 //world.world.get is calling the physics world obj, then navigating to world in the struct, then using .get to search for the ball_handle (also a val in the struct)
                 let position = ball_body.translation();
@@ -218,13 +218,43 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
             Message::Text(text) => {
 
                 println!("Received message: {}", text);
+                println!("Received message from: {}", player_id);
 
                 //This area is where we handle player messages.
                 //Here we will control the movement of the player bodies/colliders (their phys objects.)
                 //We can also perform other stuff here (like send chat messages perhaps)
+                 if let Ok(json) = serde_json::from_str::<Value>(&text) {
+                    if let Some(msg_type) = json.get("type").and_then(|v| v.as_str()) {
+
+                        // Checks msg type is move so we know what vars are available.
+                        if msg_type == "move" { 
+                            let dx = json.get("dx").and_then(|val| val.as_f64());
+                            let dy = json.get("dy").and_then(|val| val.as_f64());
+                            let dz = json.get("dz").and_then(|val| val.as_f64());
 
 
+                            {
+                                let mut world = physics_world.lock().await;
+                                world.set_player_position(player_id,dx.expect("ERR: add_player_x is NONE"),
+                                dy.expect("ERR: add_player_y is NONE"),dz.expect("ERR: add_player_z is NONE"));
 
+                                
+                            }
+                             
+                            
+                        }
+
+
+                        println!("msg value: {}", msg_type);
+                    } else {
+                        println!("'type' not found or not a float");
+                    }
+                } else {
+                    println!("Failed to parse JSON");
+                }
+
+
+                
 
 
                 // Handle incoming message (e.g., player move)
