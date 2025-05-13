@@ -134,7 +134,7 @@ impl PhysicsWorld {
             if let Some(&body_handle) = self.player_map.get(&player_id) 
             {
 
-                if let Some(rigid_body) = self.world.get_mut(body_handle) {
+                if let Some(rigid_body) = rigid_body_set.get_mut(body_handle) {
                     assert_eq!(rigid_body.body_type(), RigidBodyType::KinematicPositionBased);
 
                     rigid_body.set_enabled(true);
