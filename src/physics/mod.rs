@@ -32,6 +32,7 @@ pub struct PhysicsWorld {
     pub player_collider_map: HashMap<Uuid, ColliderHandle>,//Reverse lookup for collision detect.
     pub move_intents: HashMap<Uuid,Vector3<f64>>,
     pub ball_handle: RigidBodyHandle,
+    pub player_order_map: HashMap<Uuid, i32>,
 }
 
 impl PhysicsWorld {
@@ -88,6 +89,7 @@ impl PhysicsWorld {
             player_collider_map: HashMap::new(),
             move_intents: HashMap::new(),
             ball_handle,
+            player_order_map: HashMap::new(),
         }
 
 
@@ -123,15 +125,12 @@ impl PhysicsWorld {
 
         //The issue that stems from the phys world not updating is that we were creating a copy of the world, updating the original and then
         //performing the physics step, so no updates were actually occurring.
+        //FIXED: Used the called rigid_body_set. Makes so much sense, this was idiotic. Rust only allows 1 editable ref to data at a time.
 
         if !self.move_intents.is_empty() {
         let intents = std::mem::take(&mut self.move_intents);
-        for (player_id, pos) in intents {
-
-
-            //self.set_player_position(player_id, pos.x as f64, pos.y as f64, pos.z as f64);
-
-            if let Some(&body_handle) = self.player_map.get(&player_id) 
+        for (player_id, pos) in intents { //For each movement intent that is queued.
+            if let Some(&body_handle) = self.player_map.get(&player_id) //Access the rigid body handle.
             {
 
                 if let Some(rigid_body) = rigid_body_set.get_mut(body_handle) {
@@ -141,18 +140,9 @@ impl PhysicsWorld {
                     rigid_body.set_next_kinematic_translation(vector![pos.x as f32,pos.y as f32,pos.z as f32]);
 
                     let position = rigid_body.translation();
-                    println!("Player position in world space: x = {}, y = {}, z = {}", position.x, position.y, position.z);
+                  //  println!("Player: {} position in world space: x = {}, y = {}, z = {}", player_id, position.x, position.y, position.z);
                 }
-
-
-            // println!("Movement set.");
-            //Adding player insert to hashmap so it can be processed in the physics world step function.
-            //  self.move_intents.insert(player_id,vector![dx as f32,dy as f32,dz as f32]); 
-
             }
-
-
-
         }
         }
 
@@ -193,7 +183,7 @@ impl PhysicsWorld {
             event_ref,
         );
 
-        println!("Physics world Step!");
+        //println!("Physics world Step!");
 
     }
 
@@ -217,6 +207,8 @@ impl PhysicsWorld {
         self.player_map.insert(player_id,player_body_handle);
         //tracking player colliders, this is used for determining which player is involved in collision based of the collider handle.
         self.collider_map.insert(player_collider_handle,player_id);
+
+        
 
         //Tracking the player_collider handles, this enables us to remove the collider_map entry for the player_id when disconnecting. 
         self.player_collider_map.insert(player_id,player_collider_handle);
@@ -278,7 +270,7 @@ impl PhysicsWorld {
             rigid_body.set_next_kinematic_translation(vector![dx as f32,dy as f32,dz as f32]);
 
             let position = rigid_body.translation();
-            println!("Player position in world space: x = {}, y = {}, z = {}", position.x, position.y, position.z);
+            //println!("Player position in world space: x = {}, y = {}, z = {}", position.x, position.y, position.z);
 
 
            // println!("Movement set.");
@@ -305,7 +297,7 @@ impl PhysicsWorld {
            //Adding player insert to hashmap so it can be processed in the physics world step function.
             self.move_intents.insert(player_id,vector![dx as f64,dy as f64,dz as f64]); 
 
-            println!("Added movement to queue.");
+            //println!("Added movement to queue.");
 
         }
 

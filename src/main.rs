@@ -164,8 +164,10 @@ async fn main() {
             // Extract ball position this is used to send state to client.
             if let Some(ball_body) = world.world.get(world.ball_handle) { // Some() is used if a val may or may not exist.
                 //world.world.get is calling the physics world obj, then navigating to world in the struct, then using .get to search for the ball_handle (also a val in the struct)
+
                 let position = ball_body.translation();
                 let velocity = ball_body.linvel();
+
 
                 let state = serde_json::json!({
                     "type": "ball_state",
@@ -177,8 +179,38 @@ async fn main() {
 
                 let _ = tx_clone.send(state.to_string()); // broadcast to clients
             }
+
+
+            //Also need to send opposing player data here.
+
+            let player_map = &world.player_map ;
+            let mut player_index_num = 0;
+
+            
+
+            for (player_id, p_body_handle) in player_map {
+
+                let player_body = world.world.get(*p_body_handle);
+
+                let position = player_body.expect("No p_body").translation();
+
+                let state = serde_json::json!({
+                    "type": "player_state", //Used to determine client-side action.
+                    "player_num": player_index_num, //Used to determine what "player number" the player is, to depict position in world space.
+                    "pos": [position.x, position.y, position.z],         
+                });
+
+
+                let _ = tx_clone.send(state.to_string());
+
+                player_index_num += 1;
+
+            }
+
+            }
+
         }
-    });
+    );
 
 
     //Server is at bottom because it blocks the main() func from completing as .await and .serve are active indefinitely.
