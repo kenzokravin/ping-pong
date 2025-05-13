@@ -30,6 +30,7 @@ pub struct PhysicsWorld {
     pub player_map: HashMap<Uuid,RigidBodyHandle>,
     pub collider_map: HashMap<ColliderHandle, Uuid>, 
     pub player_collider_map: HashMap<Uuid, ColliderHandle>,//Reverse lookup for collision detect.
+    pub move_intents: HashMap<Uuid,Vector3<f64>>,
     pub ball_handle: RigidBodyHandle,
 }
 
@@ -85,6 +86,7 @@ impl PhysicsWorld {
             player_map: HashMap::new(),
             collider_map: HashMap::new(),
             player_collider_map: HashMap::new(),
+            move_intents: HashMap::new(),
             ball_handle,
         }
 
@@ -102,16 +104,57 @@ impl PhysicsWorld {
             ..Default::default()
         };
 
-        let mut island_manager = self.island_manager.clone();
-        let mut broad_phase = self.broad_phase.clone();
-        let mut narrow_phase = self.narrow_phase.clone();
-        let mut rigid_body_set = self.world.clone();
-        let mut collider_set = self.colliders.clone();
-        let mut impulse_joint_set = self.impulse_joint_set.clone();
-        let mut multibody_joint_set = self.multibody_joint_set.clone();
-        let mut ccd_solver = self.ccd_solver.clone();
-        let mut query_pipeline = self.query_pipeline.clone();
+        let mut island_manager = &mut self.island_manager;
+        let mut broad_phase = &mut self.broad_phase;
+        let mut narrow_phase = &mut self.narrow_phase;
+        let mut rigid_body_set = &mut self.world;
+        let mut collider_set = &mut self.colliders;
+        let mut impulse_joint_set = &mut self.impulse_joint_set;
+        let mut multibody_joint_set = &mut self.multibody_joint_set;
+        let mut ccd_solver =  &mut self.ccd_solver;
+        let mut query_pipeline = &mut self.query_pipeline;
 
+
+        // if !self.move_intents.is_empty() {
+        //     for (player_id, pos) in self.move_intents.drain() {
+        //         self.set_player_position(player_id, pos.x as f64, pos.y as f64, pos.z as f64);
+        //     }
+        // }
+
+        //The issue that stems from the phys world not updating is that we were creating a copy of the world, updating the original and then
+        //performing the physics step, so no updates were actually occurring.
+
+        if !self.move_intents.is_empty() {
+        let intents = std::mem::take(&mut self.move_intents);
+        for (player_id, pos) in intents {
+
+
+            //self.set_player_position(player_id, pos.x as f64, pos.y as f64, pos.z as f64);
+
+            if let Some(&body_handle) = self.player_map.get(&player_id) 
+            {
+
+                if let Some(rigid_body) = self.world.get_mut(body_handle) {
+                    assert_eq!(rigid_body.body_type(), RigidBodyType::KinematicPositionBased);
+
+                    rigid_body.set_enabled(true);
+                    rigid_body.set_next_kinematic_translation(vector![pos.x as f32,pos.y as f32,pos.z as f32]);
+
+                    let position = rigid_body.translation();
+                    println!("Player position in world space: x = {}, y = {}, z = {}", position.x, position.y, position.z);
+                }
+
+
+            // println!("Movement set.");
+            //Adding player insert to hashmap so it can be processed in the physics world step function.
+            //  self.move_intents.insert(player_id,vector![dx as f32,dy as f32,dz as f32]); 
+
+            }
+
+
+
+        }
+        }
 
         //These are wrong, need to use something different.
         //let physics_hooks = &self.physics_hooks;
@@ -125,6 +168,14 @@ impl PhysicsWorld {
 
         //let mut solver = ImpulseSolver::new();
         //self.physics_pipeline.step(&gravity, &integration_parameters, &mut solver);
+
+
+        //This is where we could allow player movement to be changed.
+        //Use the move_intents hashmap, and loop through, addressing the player id and updating it's movement.
+        //If we go non-removal from hashmap route, the first player will always be updated first 
+        // (but if they are all updated in step then does it matter?)
+        // Though if the player stops moving, it will continually update their position when it doesn't have to...
+        // So perhaps, for performance of server, it is better to remove once the job is complete.
 
         self.physics_pipeline.step(
             &gravity, 
@@ -217,17 +268,44 @@ impl PhysicsWorld {
 
     pub fn set_player_position(&mut self, player_id: Uuid, dx: f64, dy: f64, dz: f64) {
 
+         if let Some(&body_handle) = self.player_map.get(&player_id) 
+        {
+
+            let mut rigid_body = self.world.get_mut(body_handle).unwrap();
+            assert_eq!(rigid_body.body_type(), RigidBodyType::KinematicPositionBased);
+
+            rigid_body.set_enabled(true);
+            rigid_body.set_next_kinematic_translation(vector![dx as f32,dy as f32,dz as f32]);
+
+            let position = rigid_body.translation();
+            println!("Player position in world space: x = {}, y = {}, z = {}", position.x, position.y, position.z);
+
+
+           // println!("Movement set.");
+           //Adding player insert to hashmap so it can be processed in the physics world step function.
+          //  self.move_intents.insert(player_id,vector![dx as f32,dy as f32,dz as f32]); 
+
+        }
+
+
+    }
+
+    pub fn add_move_to_queue(&mut self, player_id: Uuid, dx: f64, dy: f64, dz: f64) {
+
         //Accessing rigid body from player.
         if let Some(&body_handle) = self.player_map.get(&player_id) 
         {
 
-            
-
             let mut rigid_body = self.world.get_mut(body_handle).unwrap();
-            println!("Player body position: {}", rigid_body.translation());
-            rigid_body.set_enabled(true);
-            rigid_body.set_next_kinematic_translation(vector![dx as f32,dy as f32,dz as f32]);
             
+            assert_eq!(rigid_body.body_type(), RigidBodyType::KinematicPositionBased);
+
+            //rigid_body.set_enabled(true);
+           // rigid_body.set_next_kinematic_translation(vector![dx as f32,dy as f32,dz as f32]);
+           //Adding player insert to hashmap so it can be processed in the physics world step function.
+            self.move_intents.insert(player_id,vector![dx as f64,dy as f64,dz as f64]); 
+
+            println!("Added movement to queue.");
 
         }
 

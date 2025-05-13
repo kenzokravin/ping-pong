@@ -47,6 +47,12 @@ async fn main() {
      //Arc::new == is a thread-safe reference counter. Means that it can allow multiple threads or
      //async tasks to share ownership of the same data. Without arc, data could not pass between 
      //threads as Rust's ownership model prevents moving data across threads.
+     //More on ARC. ARC means Atomic Reference Counter. It has a pointer on the stack that points to the heap value and also an atomic integer. This atomic integer
+     // counts every instance of the variable across threads, when it hits 0, it is removed. This allows us to work across threads
+     // as every thread sees the instantaneous value of the atomic integer (thus it can't be interfered incorrectly). Allowing multiple threads
+     // to use the ARC variable.
+     //MUTEX is a mutual exclusion primitive that allows only a singular thread to access the wrapped data at a time.
+
 
      //TL:DR, Rust prevents threads touching same data. Arc allows multiple to touch same data
      //Mutex ensures only 1 at a time. physics world is a readable/editable physics world.
@@ -55,6 +61,8 @@ async fn main() {
     let (tx,_rx) = broadcast::channel(16); //creating channel
     //This essential means that the channel has a cap of 16 messages, this means that when 16 new messages come, the rest are dropped.
     //This is a trade off for performance and memory. Too low and less updates. Too high and too much memory.
+
+    
 
     let tx_clone = tx.clone();
     //This creates a clone of the sender handle.
@@ -165,7 +173,7 @@ async fn main() {
                     "vel": [velocity.x, velocity.y, velocity.z]
                 });
 
-                println!("{}",state);
+                //println!("{}",state);
 
                 let _ = tx_clone.send(state.to_string()); // broadcast to clients
             }
@@ -218,7 +226,7 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
             Message::Text(text) => {
 
                 println!("Received message: {}", text);
-                println!("Received message from: {}", player_id);
+                //println!("Received message from: {}", player_id);
 
                 //This area is where we handle player messages.
                 //Here we will control the movement of the player bodies/colliders (their phys objects.)
@@ -235,7 +243,7 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
 
                             {
                                 let mut world = physics_world.lock().await;
-                                world.set_player_position(player_id,dx.expect("ERR: add_player_x is NONE"),
+                                world.add_move_to_queue(player_id,dx.expect("ERR: add_player_x is NONE"),
                                 dy.expect("ERR: add_player_y is NONE"),dz.expect("ERR: add_player_z is NONE"));
 
                                 
