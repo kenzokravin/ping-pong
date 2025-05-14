@@ -199,7 +199,8 @@ impl PhysicsWorld {
         let player_body_handle = self.world.insert(player_body);
 
         //Creating bat collider, cylinder in shape. This is what will follow the player mouse and communicate "hits".
-        let player_collider = ColliderBuilder::cylinder(0.05, 0.5).build();
+   
+        let player_collider = ColliderBuilder::cylinder(0.05, 0.75).rotation(vector![0.0, 0.0, std::f32::consts::FRAC_PI_2]).build();
         //Adding collider to collider set.
         let player_collider_handle = self.colliders.insert_with_parent(player_collider, player_body_handle, &mut self.world);
 

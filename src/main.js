@@ -362,7 +362,7 @@ const cannonDebugger = CannonDebugger(scene, world, {
 });
 
 
-//document.addEventListener("mousedown",triggerBallAnimationStart);
+
 //document.addEventListener("mouseup",triggerBallAnimation);
 
 let isBallInAir = false;
@@ -434,7 +434,7 @@ var vec = new THREE.Vector3(); // create once and reuse
 var pos = new THREE.Vector3(); // create once and reuse
 
 
-
+document.addEventListener("mousedown",triggerHit);
 document.addEventListener('mousemove', onDocMouseMove);
 
 function onDocMouseMove(event) {
@@ -469,6 +469,14 @@ function updateServerBall() {
 
 
   socket.send(JSON.stringify({ type: 'move', dx, dy ,dz}));
+}
+
+function triggerHit() {
+  //Triggering Hit Animation/Server-Side
+
+
+ socket.send(JSON.stringify({ type: 'hit_begin', dx, dy ,dz})); //Send to server-hit trigger with current position of hit.
+  
 }
 
 
