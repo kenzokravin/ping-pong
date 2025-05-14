@@ -175,16 +175,16 @@ socket.addEventListener('message', event => {
 
 
   if (data.type === 'init') {
-    id = data.id;
-    //console.log(data.playerPosition); //This finds what order the player joins the server and how to broadcast others.
+    id = data.player_id;
+    console.log(data); //This finds what order the player joins the server and how to broadcast others.
 
-    if(data.playerPosition == 1) {
-      side = 1;
-    } else {
-      side = 0;
-    }
+     if(data.player_index == 1) {
+       side = 1;
+     } else {
+       side = 0;
+     }
 
-    setSide(side);
+     setSide(side);
     
   } else if (data.type === 'state') {
     players = data.players; //This is receiving info about all players.
@@ -253,6 +253,52 @@ socket.addEventListener('message', event => {
   //console.log("Ball: " + ballBody.position + " Paddle: " + playerBatBody.position);
   
 
+  } else if (data.type === 'player_state') {
+    let player_number = data.player_num;
+    let player_pos = data.pos;
+    let playerId = data.player_id;
+
+    if (playerId != id) { //Checking if the incoming data concerns other player bats.
+      
+
+      if (!opponentBats[playerId]) {
+        if (!playerBat) return; //checks if player bat has loaded (gltf loader) so it can be cloned.
+
+        for (const existingId of Object.keys(opponentBats)) { 
+          //This function checks if a player has disconnected. If no data is retrieved, remove player from world.
+          if (!data.players.hasOwnProperty(existingId)) {
+            scene.remove(opponentBats[existingId]);
+            delete opponentBats[existingId];
+          }
+        }
+
+
+        let batClone = playerBat.clone(); // or load a separate model
+        //batClone.material = playerBat.material.clone(); // optional: make it distinct
+        scene.add(batClone); //adding clone to world.
+        opponentBats[playerId] = batClone; //adding clone to bat tracker.
+        console.log(opponentBats);
+
+        batClone.traverse(child => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+          }
+        });
+      }
+
+        // Update position
+       const opponentBat = opponentBats[playerId];
+       opponentBat.position.set( pos.x,pos.y,pos.z);
+ 
+       // Update Rotation for appearance purposes.
+       opponentBat.lookAt(rotationTargetOpposition);
+       opponentBat.rotateX(-Math.PI / 2);
+       opponentBat.rotateY(Math.PI / 2);
+
+
+
+
+    }
   }
 });
 

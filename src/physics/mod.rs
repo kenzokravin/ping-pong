@@ -203,6 +203,15 @@ impl PhysicsWorld {
         //Adding collider to collider set.
         let player_collider_handle = self.colliders.insert_with_parent(player_collider, player_body_handle, &mut self.world);
 
+        let mut player_index_num = 0;
+
+        for (player_id, p_body_handle) in &self.player_map {
+            player_index_num += 1; //Determining index of player_order using world rigid_bodies.
+        }
+
+        //Tracking player_id and their player order, which will be used to set sides of board.
+        self.player_order_map.insert(player_id,player_index_num);
+
         //Tracking player bodies using player ID, used to remove player bodies from physics world. (from rigid body set)
         self.player_map.insert(player_id,player_body_handle);
         //tracking player colliders, this is used for determining which player is involved in collision based of the collider handle.
@@ -282,7 +291,7 @@ impl PhysicsWorld {
 
     }
 
-    pub fn add_move_to_queue(&mut self, player_id: Uuid, dx: f64, dy: f64, dz: f64) {
+    pub fn add_move_to_queue(&mut self, player_id: Uuid, dx: f64, dy: f64, mut dz: f64) {
 
         //Accessing rigid body from player.
         if let Some(&body_handle) = self.player_map.get(&player_id) 
@@ -292,16 +301,38 @@ impl PhysicsWorld {
             
             assert_eq!(rigid_body.body_type(), RigidBodyType::KinematicPositionBased);
 
+            if let Some(&player_index_num) = self.player_order_map.get(&player_id) { //used to verify position in world space.
+
+                if player_index_num == 0 {
+
+                    dz = 9.0; //ensuring that the user is on a z level of 9.
+        
+                } else if player_index_num == 1 {
+
+                    dz = 9.0;
+                    dz *= -1.0; //flipping the user so that they are on opposing sides.
+
+                    println!("Flipping User: {} for dz: {}",player_id,dz);
+
+                }
+
+
+            }
             //rigid_body.set_enabled(true);
            // rigid_body.set_next_kinematic_translation(vector![dx as f32,dy as f32,dz as f32]);
            //Adding player insert to hashmap so it can be processed in the physics world step function.
             self.move_intents.insert(player_id,vector![dx as f64,dy as f64,dz as f64]); 
-
-            //println!("Added movement to queue.");
-
         }
 
     }
+
+    pub fn get_player_number(&mut self, player_id: Uuid) -> i32 {
+        match self.player_order_map.get(&player_id) {
+            Some(&index) => index, //return index value.
+            None => -1, // returning an impossible order value if the hash doesn't exist yet.
+        }
+    }
+
 
     //Used to lerp between 2 vector3 values/positions over time t.
     pub fn lerp_vector3(&mut self, start_vec : Vector3<f64>, end_vec:Vector3<f64>, t : f64) -> Vector3<f64> { 

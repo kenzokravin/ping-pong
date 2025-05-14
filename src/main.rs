@@ -195,7 +195,9 @@ async fn main() {
                 let position = player_body.expect("No p_body").translation();
 
                 let state = serde_json::json!({
+                    
                     "type": "player_state", //Used to determine client-side action.
+                    "player_id": player_id.to_string(),
                     "player_num": player_index_num, //Used to determine what "player number" the player is, to depict position in world space.
                     "pos": [position.x, position.y, position.z],         
                 });
@@ -232,14 +234,25 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
       // This code means that it waits until the thread gets exclusive access to physics_world
       // It then gives a mutable reference, so that the world.add_player() can be added.
       //without mutex (ensuring only 1 can access) then more than 1 player could alter the physics world at once.
+    let mut player_index = -1;
     {
         let mut world = physics_world.lock().await;
         world.add_player(player_id);
+        player_index = world.get_player_number(player_id);
     }
 
     println!("Player {} connected", player_id);
 
     let (mut sender, mut receiver) = socket.split();
+
+
+    //Sending initial init message when user first connects to server.
+    let welcome_msg = serde_json::json!({
+            "type": "init", //sending message type for init.
+            "player_id": player_id.to_string(), //sending player_id.
+            "player_index": player_index, //returning player index to set order.
+    });
+    let _ = sender.send(Message::Text(welcome_msg.to_string().into())).await;
 
     // let mut send_socket = socket.copy();
 
@@ -292,10 +305,6 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
                 } else {
                     println!("Failed to parse JSON");
                 }
-
-
-                
-
 
                 // Handle incoming message (e.g., player move)
                 
