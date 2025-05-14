@@ -207,6 +207,7 @@ impl PhysicsWorld {
 
         for (player_id, p_body_handle) in &self.player_map {
             player_index_num += 1; //Determining index of player_order using world rigid_bodies.
+            println!("Adding to index: {}", player_index_num);
         }
 
         //Tracking player_id and their player order, which will be used to set sides of board.
@@ -247,6 +248,9 @@ impl PhysicsWorld {
 
             // Remove tracking info in player_map (for rigid bodies)
             self.player_map.remove(&player_id);
+
+            //Remove info for the player_index.
+            self.player_order_map.remove(&player_id);
 
             //Accessing collider handle, using result to remove from collider map, then removing from the joining map (player_collider_map)
             let player_collider_handle = self.player_collider_map.get(&player_id).copied().unwrap();
@@ -309,10 +313,15 @@ impl PhysicsWorld {
         
                 } else if player_index_num == 1 {
 
-                    dz = 9.0;
-                    dz *= -1.0; //flipping the user so that they are on opposing sides.
+                    if dz < 0.0 && dz > -9.001 && dz < -8.999 { //ensuring player order are opposite in physics world.
+                               // println!("dz is within the target negative range");
+                    } else {
+                        dz = 9.0;
+                        dz *= -1.0; //flipping the user so that they are on opposing sides.
+                    }
 
-                    println!("Flipping User: {} for dz: {}",player_id,dz);
+
+                   // println!("Flipping User: {} for dz: {}",player_id,dz);
 
                 }
 

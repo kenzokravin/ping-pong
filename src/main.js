@@ -31,6 +31,11 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+//Axes Helper for visual
+//Red is X, Y is green, Z is Blue
+const axesHelper = new THREE.AxesHelper( 5 );
+scene.add( axesHelper );
+
 let ballPositionTarget;
 let playerTableTarget;
 let randomTarget;
@@ -186,7 +191,7 @@ socket.addEventListener('message', event => {
 
      setSide(side);
     
-  } else if (data.type === 'state') {
+  } else if (data.type === '') {
     players = data.players; //This is receiving info about all players.
     //console.log(players);
 
@@ -217,6 +222,7 @@ socket.addEventListener('message', event => {
         });
       }
 
+      
 
        // Update position
        const opponentBat = opponentBats[playerId];
@@ -258,6 +264,9 @@ socket.addEventListener('message', event => {
     let player_pos = data.pos;
     let playerId = data.player_id;
 
+    //Need to check if messages are still being sent regarding if player is still in game.
+    
+
     if (playerId != id) { //Checking if the incoming data concerns other player bats.
       
 
@@ -266,10 +275,14 @@ socket.addEventListener('message', event => {
 
         for (const existingId of Object.keys(opponentBats)) { 
           //This function checks if a player has disconnected. If no data is retrieved, remove player from world.
-          if (!data.players.hasOwnProperty(existingId)) {
-            scene.remove(opponentBats[existingId]);
-            delete opponentBats[existingId];
-          }
+          // if (!data.players.hasOwnProperty(existingId)) {
+          //   scene.remove(opponentBats[existingId]);
+          //   delete opponentBats[existingId];
+          // }
+
+          // if()
+
+
         }
 
 
@@ -278,6 +291,8 @@ socket.addEventListener('message', event => {
         scene.add(batClone); //adding clone to world.
         opponentBats[playerId] = batClone; //adding clone to bat tracker.
         console.log(opponentBats);
+
+        console.log("Added other player bat to scene.");
 
         batClone.traverse(child => {
           if (child.isMesh) {
@@ -288,17 +303,26 @@ socket.addEventListener('message', event => {
 
         // Update position
        const opponentBat = opponentBats[playerId];
-       opponentBat.position.set( pos.x,pos.y,pos.z);
+       opponentBat.position.set( player_pos[0],player_pos[1],player_pos[2]);
+
+
+       console.log("Type of x:", typeof player_pos[0], "Value:", player_pos);
+
+
  
        // Update Rotation for appearance purposes.
        opponentBat.lookAt(rotationTargetOpposition);
        opponentBat.rotateX(-Math.PI / 2);
        opponentBat.rotateY(Math.PI / 2);
-
-
-
-
     }
+  } else if (data.type === "remove") {
+    let player_to_remove = data.player_id;
+
+    if (opponentBats[player_to_remove]) { //Checking if there is a body with the id to remove.
+      scene.remove(opponentBats[player_to_remove]); // Removing from world.
+      delete opponentBats[player_to_remove]; //Removing from opponent bats.
+    }
+
   }
 });
 
@@ -324,13 +348,13 @@ function setSide(side) {
 
 // ----Detect collision and trigger animation
 world.addEventListener("postStep", () => {
-  const dist = ballBody.position.distanceTo(playerBatBody.position);
-  if (dist < .10) {
+  //const dist = ballBody.position.distanceTo(playerBatBody.position);
+  //if (dist < .10) {
     //shotHit();
    // triggerBallAnimation();
     
     //console.log("hit player bat");
-  }
+  //}
 });
 
 const cannonDebugger = CannonDebugger(scene, world, {

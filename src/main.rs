@@ -257,6 +257,8 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
     // let mut send_socket = socket.copy();
 
     //This function creates a background async task that listens for messages on a channel and sends them over a websocket connect.
+    
+
     tokio::spawn(async move {
         while let Ok(message) = rx.recv().await {
             //The following code converts the message into a websocket and attempts to send.
@@ -266,12 +268,13 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
         }
     });
 
+    
+
     while let Some(Ok(msg)) = receiver.next().await {
         match msg {
             Message::Text(text) => {
 
-                println!("Received message: {}", text);
-                //println!("Received message from: {}", player_id);
+                //println!("Received message: {}", text);
 
                 //This area is where we handle player messages.
                 //Here we will control the movement of the player bodies/colliders (their phys objects.)
@@ -285,36 +288,39 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
                             let dy = json.get("dy").and_then(|val| val.as_f64());
                             let dz = json.get("dz").and_then(|val| val.as_f64());
 
-
                             {
                                 let mut world = physics_world.lock().await;
                                 world.add_move_to_queue(player_id,dx.expect("ERR: add_player_x is NONE"),
                                 dy.expect("ERR: add_player_y is NONE"),dz.expect("ERR: add_player_z is NONE"));
-
-                                
                             }
-                             
-                            
+                              
                         }
-
-
-                        println!("msg value: {}", msg_type);
+                        //println!("msg value: {}", msg_type);
                     } else {
                         println!("'type' not found or not a float");
                     }
                 } else {
                     println!("Failed to parse JSON");
                 }
-
-                // Handle incoming message (e.g., player move)
                 
-                // TODO: Parse and update paddle position
             }
             Message::Close(_) => {
                 // Handle closing the WebSocket connection
                 {
                     let mut world = physics_world.lock().await; //Waiting for thread to gain access to phys world.
                     world.remove_player(player_id); //Calls remove_player logic (in Physics World instance)
+                }
+
+
+                //Sending information to remove player when they disconnect.
+                let removal_msg = serde_json::json!({
+                    "type": "remove",
+                    "player_id": player_id.to_string(),
+                });
+
+                // Send to all clients via broadcast channel
+                if let Err(e) = _tx.send(removal_msg.to_string()) {
+                    eprintln!("Broadcast error on player remove: {}", e);
                 }
 
                 println!("Connection closed");
