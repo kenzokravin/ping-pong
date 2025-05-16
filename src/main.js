@@ -171,10 +171,18 @@ socket.addEventListener('message', event => {
 
   console.log("Raw message:", event.data);
   
-  if(data.type === 'ball_state' ) {
+  if(data.type === 'ball_state' ) { //Used to access ball_state and display it's server position.
 
+    let sBallPosition = data.pos;
     //Working...
-    console.log("ball state: " + data);
+    console.log("ball state: " + data.pos);
+
+    ball.position.set(sBallPosition[0],sBallPosition[1],sBallPosition[2]);
+
+
+    // ballBody.position.x = sBall.x;
+    // ballBody.position.y = sBall.y;
+    // ballBody.position.z = 
 
   }
 
@@ -573,7 +581,7 @@ function animate() {
   world.step(1 / 60);
 
   // Sync Three.js objects with Cannon physics bodies
-  ball.position.copy(ballBody.position);
+  //ball.position.copy(ballBody.position);
 
 
 

@@ -175,7 +175,7 @@ async fn main() {
                     "vel": [velocity.x, velocity.y, velocity.z]
                 });
 
-                //println!("{}",state);
+                //println!("Ball: {}",state);
 
                 let _ = tx_clone.send(state.to_string()); // broadcast to clients
             }
@@ -295,6 +295,29 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
                             }
                               
                         }
+
+                        if msg_type == "hit_begin" {
+                            //Triggering hit receive function.
+                            {
+                                let mut world = physics_world.lock().await;
+                                world.player_hit_exec(player_id);
+                            }
+
+
+                            println!("Received Hit Start for {}", player_id);
+
+
+
+                        }
+
+                        if msg_type == "hit_end" {
+                            //Triggering hit receive function.
+                            println!("Received Hit Finish for {}", player_id);
+
+
+                        }
+
+
                         //println!("msg value: {}", msg_type);
                     } else {
                         println!("'type' not found or not a float");

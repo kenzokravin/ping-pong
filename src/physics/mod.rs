@@ -2,11 +2,17 @@
 //Within this file is where all the physics calcs can be made and all the required data is organised.
 //
 
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use rapier3d::prelude::*;
 use crate::nalgebra::Vector3;
+use crate::nalgebra::distance;
 use std::collections::HashMap;
 use uuid::Uuid;
+
+mod game_state;
+use game_state::{GameState, SharedGameState};
 
 
 // Simple physics world struct to hold the rapier world
@@ -38,6 +44,7 @@ pub struct PhysicsWorld {
 impl PhysicsWorld {
     pub fn new() -> Self {
 
+         let state: SharedGameState = Arc::new(Mutex::new(GameState::new()));
 
         let mut world = RigidBodySet::new(); //creating empty collections.
         let mut colliders = ColliderSet::new();
@@ -343,6 +350,78 @@ impl PhysicsWorld {
         }
     }
 
+    pub fn player_hit(&mut self, player_id:Uuid) { //Called when player hits "mouse down" to start hit.
+
+        if let Some(&body_handle) = self.player_map.get(&player_id) 
+        {
+            let mut rigid_body = self.world.get_mut(body_handle).unwrap(); //Getting rigidBody of player
+
+
+             let mut p_position = rigid_body.position(); //retrieving position of hit location.
+
+
+            
+
+             println!("hit_position = {}",p_position);
+
+        }
+
+
+    }
+
+    pub fn player_hit_exec(&mut self, player_id:Uuid) {
+
+        
+        if let Some(&body_handle) = self.player_map.get(&player_id) 
+        {
+            let mut rigid_body = self.world.get_mut(body_handle).unwrap(); //Getting rigidBody of player
+
+            let mut p_position = rigid_body.position(); //retrieving position of hit location.
+
+            let p_pos = Point::from(p_position.translation.vector);
+
+            let ball_handle = self.ball_handle; //Accessing ball handle.
+
+           // let ball_rb = self.world.get(ball_handle);
+           let mut ball_rb = self.world.get_mut(ball_handle).unwrap();
+
+            if let Some(ball_rb) = self.world.get(ball_handle) {
+
+                let mut b_position = ball_rb.position();
+
+ 
+                let b_pos = Point::from(b_position.translation.vector);
+
+                let dist = distance(&p_pos,&b_pos);
+                println!("hit dist from bat and ball = {}",dist);
+
+            }
+            
+            // let mut b_position = ball_rb.position();
+
+                // if distance(p_position,b_position) > 0.5 {
+
+                //     let dist = distance(p_position,b_position);
+
+                //     println!("distance between player and ball at hit = {}",dist);
+
+                // }
+
+            
+            
+
+            //println!("hit_position = {}",p_position);
+
+        }
+
+    }
+
+    // pub fn distance(start: Vector3<T>, other: Vector3<T>) -> f32 {
+    //     let dx = other.x - start.x;
+    //     let dy = other.y - start.y;
+    //     let dz = other.z - start.z;
+    //     (dx * dx + dy * dy + dz * dz).sqrt()
+    // }
 
     //Used to lerp between 2 vector3 values/positions over time t.
     pub fn lerp_vector3(&mut self, start_vec : Vector3<f64>, end_vec:Vector3<f64>, t : f64) -> Vector3<f64> { 
