@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 mod game_state;
-use game_state::{GameState, SharedGameState};
+use game_state::Timer;
 
 
 // Simple physics world struct to hold the rapier world
@@ -39,12 +39,12 @@ pub struct PhysicsWorld {
     pub move_intents: HashMap<Uuid,Vector3<f64>>,
     pub ball_handle: RigidBodyHandle,
     pub player_order_map: HashMap<Uuid, i32>,
+    pub player_shot_timer: HashMap<Uuid,Arc<Mutex<Timer>>>
 }
 
 impl PhysicsWorld {
     pub fn new() -> Self {
 
-         let state: SharedGameState = Arc::new(Mutex::new(GameState::new()));
 
         let mut world = RigidBodySet::new(); //creating empty collections.
         let mut colliders = ColliderSet::new();
@@ -97,6 +97,7 @@ impl PhysicsWorld {
             move_intents: HashMap::new(),
             ball_handle,
             player_order_map: HashMap::new(),
+            player_shot_timer: HashMap::new(),
         }
 
 
@@ -354,31 +355,39 @@ impl PhysicsWorld {
 
         if let Some(&body_handle) = self.player_map.get(&player_id) 
         {
-            let mut rigid_body = self.world.get_mut(body_handle).unwrap(); //Getting rigidBody of player
 
+            //When creating timer, we must verify that there is no existing timer already for an id.
+            //This ensures that the user cannot spam timer creation and destroy the server.
 
-             let mut p_position = rigid_body.position(); //retrieving position of hit location.
+            let timer = Arc::new(Mutex::new(Timer::new(3)));
+            self.player_shot_timer.insert(player_id,timer);
 
-
-            
-
-             println!("hit_position = {}",p_position);
+            println!("Hit timer started.");
 
         }
 
 
     }
 
-    pub fn player_hit_exec(&mut self, player_id:Uuid) {
+    pub async fn player_hit_exec(&mut self, player_id:Uuid) {
 
-        
+        println!("Hit timer started.");
         if let Some(&body_handle) = self.player_map.get(&player_id) 
         {
+
+            if let Some(timer) = self.player_shot_timer.get(&player_id) {
+                println!("Timer is here");
+                let is_done = timer.lock().await.timer_value().as_millis();
+                
+                println!("{:?} shot time", is_done);
+                
+            }
+
             let mut rigid_body = self.world.get_mut(body_handle).unwrap(); //Getting rigidBody of player
 
             let mut p_position = rigid_body.position(); //retrieving position of hit location.
 
-            let p_pos = Point::from(p_position.translation.vector);
+            let p_pos = Point::from(p_position.translation.vector); //Getting the point from the position.
 
             let ball_handle = self.ball_handle; //Accessing ball handle.
 
@@ -389,28 +398,14 @@ impl PhysicsWorld {
 
                 let mut b_position = ball_rb.position();
 
- 
                 let b_pos = Point::from(b_position.translation.vector);
 
-                let dist = distance(&p_pos,&b_pos);
+                let dist = distance(&p_pos,&b_pos); //finding distance.
                 println!("hit dist from bat and ball = {}",dist);
 
             }
-            
-            // let mut b_position = ball_rb.position();
-
-                // if distance(p_position,b_position) > 0.5 {
-
-                //     let dist = distance(p_position,b_position);
-
-                //     println!("distance between player and ball at hit = {}",dist);
-
-                // }
-
-            
-            
-
-            //println!("hit_position = {}",p_position);
+        
+        //println!("hit_position = {}",p_position);
 
         }
 

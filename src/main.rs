@@ -300,7 +300,7 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
                             //Triggering hit receive function.
                             {
                                 let mut world = physics_world.lock().await;
-                                world.player_hit_exec(player_id);
+                                world.player_hit(player_id);
                             }
 
 
@@ -311,6 +311,12 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
                         }
 
                         if msg_type == "hit_end" {
+
+                             {
+                                let mut world = physics_world.lock().await;
+                                world.player_hit_exec(player_id).await;
+                            }
+
                             //Triggering hit receive function.
                             println!("Received Hit Finish for {}", player_id);
 

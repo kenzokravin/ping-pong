@@ -173,11 +173,11 @@ socket.addEventListener('message', event => {
   
   if(data.type === 'ball_state' ) { //Used to access ball_state and display it's server position.
 
-    let sBallPosition = data.pos;
-    //Working...
+    let sBallPosition = data.pos; //Accessing positional data.
+    
     console.log("ball state: " + data.pos);
 
-    ball.position.set(sBallPosition[0],sBallPosition[1],sBallPosition[2]);
+    ball.position.set(sBallPosition[0],sBallPosition[1],sBallPosition[2]); //Setting server position using server ball data.
 
 
     // ballBody.position.x = sBall.x;
@@ -443,6 +443,7 @@ var pos = new THREE.Vector3(); // create once and reuse
 
 
 document.addEventListener("mousedown",triggerHit);
+document.addEventListener("mouseup",releaseHit);
 document.addEventListener('mousemove', onDocMouseMove);
 
 function onDocMouseMove(event) {
@@ -487,6 +488,14 @@ function triggerHit() {
   
 }
 
+function releaseHit() {
+  //Triggering Hit Animation/Server-Side
+
+
+ socket.send(JSON.stringify({ type: 'hit_end', dx, dy ,dz})); //Send to server-hit trigger with current position of hit.
+  
+}
+
 
 
 //---Updates player bat position.
@@ -498,21 +507,25 @@ function updatePlayerPosition() {
 
    targetPosition = pos;
 
-   
-
   // Move towards the target
   currentPosition.lerp(targetPosition, lerpSpeed);
   playerBat.position.copy(currentPosition);
-  //playerBatBody.position.copy(currentPosition);
 
 //Rotating towards base.
+  // playerBat.rotateX(-Math.PI/2);
+ //   playerBat.rotateY(Math.PI/2);
    playerBat.lookAt(rotationTargetPlayer);
-    playerBat.rotateX(-Math.PI/2);
-    playerBat.rotateY(Math.PI/2);
 
-   //Rotate collision mesh
-   //playerBatBody.position.copy(currentPosition);
- // playerBatBody.quaternion.copy(playerBat);
+  const xAxis = new THREE.Vector3(1, 0, 0); // rotate around X
+  const xAngle = -Math.PI / 2;
+  playerBat.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(xAxis, xAngle));
+
+  const yAxis = new THREE.Vector3(0, 1, 0); // rotate around Y
+  const yAngle = Math.PI / 2;
+  playerBat.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(yAxis, yAngle));
+
+    // playerBat.rotateX(-Math.PI/2);
+    // playerBat.rotateY(Math.PI/2);
 
  // let direction = new THREE.Vector3().subVectors(rotationTargetPlayer, currentPosition);
  // direction.normalize();
@@ -521,10 +534,8 @@ function updatePlayerPosition() {
   
   let cylinderCopy = currentPosition;
 
-  //cylinder.position.copy(cylinderCopy);
-  cylinder.lookAt(rotationTargetPlayer);
 
-  //console.log(rotationTargetPlayer);
+  cylinder.lookAt(rotationTargetPlayer);
    
   cylinder.rotateZ(Math.PI/2);
 
@@ -548,12 +559,6 @@ ballBody.addEventListener('collide', function (event) {
 
   //This listener works by checking the event body against the player body list.
   console.log("hit other body!!");
-
-  // if (otherBody === playerBatBody) {
-  //   shotHit();
-  //   triggerBallAnimation();
-  //   console.log('Ball hit player bat');
-  // }
 });
 
 

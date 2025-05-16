@@ -1,31 +1,43 @@
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
-#[derive(Debug)]
-pub struct GameState {
-    pub active: bool,
-    pub some_data: String,
+use std::time::{Duration, Instant};
+
+pub struct Timer {
+    start: Instant,
+    duration: Duration,
 }
 
-impl GameState {
-    pub fn new() -> Self { //Constructor
-        Self { active: false, some_data: String::new() }
+impl Timer {
+    pub fn new(duration_secs: u64) -> Self  {
+         Timer {
+            start: Instant::now(),
+            duration: Duration::from_secs(duration_secs),
+        }
+        
     }
 
-    pub async fn start_action(&mut self) {
-        self.active = true;
-        self.some_data = "Started".to_string();
-        println!("Action started");
-    }
-
-    pub async fn end_action(&mut self) {
-        if self.active {
-            self.active = false;
-            println!("Action ended with data: {}", self.some_data);
-        } else {
-            println!("No action active");
+    pub fn start_timer(duration_secs: u64) -> Self {
+        Timer {
+            start: Instant::now(),
+            duration: Duration::from_secs(duration_secs),
         }
     }
+
+    pub fn remaining(&self) -> Duration {
+        let elapsed = self.start.elapsed();
+        if elapsed >= self.duration {
+            Duration::from_secs(0)
+        } else {
+            self.duration - elapsed
+        }
+    }
+
+    pub fn is_done(&self) -> bool {
+        self.start.elapsed() >= self.duration
+    }
+
+    pub fn timer_value(&self) -> Duration {
+        self.start.elapsed()
+    }
 }
 
-pub type SharedGameState = Arc<Mutex<GameState>>;
+
