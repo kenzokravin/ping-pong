@@ -188,7 +188,7 @@ async fn main() {
 
             
 
-            for (player_id, p_body_handle) in player_map {
+            for (player_id, p_body_handle) in player_map { //Getting all players in hashmap.
 
                 let player_body = world.world.get(*p_body_handle);
 

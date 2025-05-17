@@ -377,7 +377,7 @@ impl PhysicsWorld {
 
             if let Some(timer) = self.player_shot_timer.get(&player_id) {
                 println!("Timer is here");
-                let is_done = timer.lock().await.timer_value().as_millis();
+                let is_done = timer.lock().await.timer_value().as_millis(); //Retrieving timer value as millis.
                 
                 println!("{:?} shot time", is_done);
                 
@@ -402,8 +402,15 @@ impl PhysicsWorld {
 
                 let dist = distance(&p_pos,&b_pos); //finding distance.
                 println!("hit dist from bat and ball = {}",dist);
-
             }
+
+
+            if let Some(timer) = self.player_shot_timer.get(&player_id) { //Removing timer entry for player to prevent duplicates.
+                self.player_shot_timer.remove(&player_id);
+                println!("Removed timer for player.");
+            }
+
+
         
         //println!("hit_position = {}",p_position);
 
