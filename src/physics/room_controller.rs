@@ -14,7 +14,7 @@ pub struct RoomController {
 }
 
 impl RoomController {
-    pub fn new(duration_secs: u64) -> Self  {
+    pub fn new() -> Self  {
 
         RoomController { //Instantiating constructor variables.
             rooms: HashMap::new(),
@@ -22,11 +22,19 @@ impl RoomController {
         
     }
 
-    pub fn create_room(&mut self) -> Uuid { ... }
+    pub fn create_room(&mut self) -> Uuid { 
+        
+     }
 
-    pub fn join_room(&mut self, room_id: Uuid, player: Player) -> Result<(), Error> { ... }
+    pub fn join_room(&mut self, room_id: Uuid, player: Player) -> Result<(), Error> {
 
-    pub fn handle_input(&mut self, room_id: Uuid, input: PlayerInput) { ... }
+        
+        
+    }
+
+    pub fn handle_input(&mut self, room_id: Uuid, input: PlayerInput) { 
+        
+    }
 
     pub fn delete_room(&mut self, room_id: Uuid) {
 
