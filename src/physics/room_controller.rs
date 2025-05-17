@@ -11,6 +11,7 @@ use room::Room;
 
 pub struct RoomController {
     rooms: HashMap<Uuid,Room>,
+    rooms_array: Vec<Room>,
 }
 
 impl RoomController {
@@ -18,15 +19,21 @@ impl RoomController {
 
         RoomController { //Instantiating constructor variables.
             rooms: HashMap::new(),
+            rooms_array: Vec::new(),
         }
         
     }
 
     pub fn create_room(&mut self) -> Uuid { 
+        let new_room = Room::new();
+        self.rooms_array.insert(new_room);
         
      }
 
     pub fn join_room(&mut self, room_id: Uuid, player: Player) -> Result<(), Error> {
+
+        //Search through rooms with room_free == true.
+        //Add player to room.
 
         
         
