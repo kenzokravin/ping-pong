@@ -1,3 +1,7 @@
+//This is the timer file.
+//This is where the timer for each player's hit is calculated.
+//This is used to determine hit "quality".
+
 
 use std::time::{Duration, Instant};
 

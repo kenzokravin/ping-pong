@@ -1,6 +1,7 @@
 //This is the physics world file.
 //Within this file is where all the physics calcs can be made and all the required data is organised.
-//
+//Within each instance is a list of the players, their physics bodies, the ball, table.
+
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
