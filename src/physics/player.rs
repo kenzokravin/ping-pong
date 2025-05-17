@@ -3,6 +3,9 @@
 //It can also be used for database entries.
 //These will be components such as ELO and display name.
 
+//Also might be able to handle websocket connections here. (Might need to verify)
+//It would use unbounded MPSC channels (tx.send etc)
+
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -23,14 +26,14 @@ impl Player {
         
 
 
-        Player { //Init Room.
+        Player { //Init Player
             id,
             display_name,
         }
         
     }
 
-    pub fn get_id(&mut self) -> Uuid {
+    pub fn get_id(&mut self) -> Uuid { //Retreive player id.
         self.id
     }
 
