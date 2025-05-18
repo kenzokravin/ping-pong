@@ -11,7 +11,7 @@ use room::Room;
 
 pub struct RoomController {
     rooms: HashMap<Uuid,Room>,
-    rooms_array: Vec<Room>,
+    rooms_list: Vec<Room>,
 }
 
 impl RoomController {
@@ -19,24 +19,31 @@ impl RoomController {
 
         RoomController { //Instantiating constructor variables.
             rooms: HashMap::new(),
-            rooms_array: Vec::new(),
+            rooms_list: Vec::new(),
         }
         
     }
 
     pub fn create_room(&mut self) -> Uuid { 
-        let new_room = Room::new();
-        self.rooms_array.insert(new_room);
+        let new_room = Room::new(); //Creating new room.
+        self.rooms_list.insert(new_room);
         
      }
 
-    pub fn join_room(&mut self, room_id: Uuid, player: Player) -> Result<(), Error> {
+    pub fn add_player_to_room(&mut self, player: Player) -> Result<(), Error> {
 
         //Search through rooms with room_free == true.
         //Add player to room.
+         for room in self.rooms_list.as_mut() {
 
-        
-        
+            let room_state = room.state;
+
+            if room.state == "Not Started" {   //Checking game hasn't started.
+                if room.pop < room.capacity { // Checking the room is not full.
+                    room.add_player(player);
+                }
+            }
+        }
     }
 
     pub fn handle_input(&mut self, room_id: Uuid, input: PlayerInput) { 
@@ -47,5 +54,13 @@ impl RoomController {
 
 
     }
+
+    pub fn process_rooms(&mut self, dt: f32) {
+        for room in self.rooms_list.as_mut() {
+            room.tick(dt); //Stepping physics world in room.
+        }
+    }
+
+    
 
 }

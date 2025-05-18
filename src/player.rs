@@ -22,13 +22,13 @@ impl Player {
     pub fn new() -> Self  {
 
         let id = Uuid::new_v4(); //Creating id.
-        let display_name = "TBC";
+        let display_name = "TBC"; //Display name.
         
 
 
         Player { //Init Player
             id,
-            display_name,
+            display_name.to_string(),
         }
         
     }

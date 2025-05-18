@@ -24,6 +24,12 @@ use physics::PhysicsWorld;
 use serde_json::Value;
 use futures::{sink::SinkExt, stream::StreamExt};
 
+mod room_controller;
+use room_controller::RoomController;
+
+mod player;
+use player::Player;
+
 
 #[tokio::main]
 async fn main() {
@@ -40,6 +46,7 @@ async fn main() {
 
     // Create the physics world
      let physics_world = Arc::new(Mutex::new(PhysicsWorld::new()));
+     let room_controller = Arc::new(Mutex::new(RoomController::new()));
      // Code explained:
      //PhysicsWorld::new() == struct constructor for a new instance of physics world.
      //Mutex::new == ensures only one thread can modify or read the physics world at any time.
@@ -75,9 +82,10 @@ async fn main() {
             let tx = tx.clone(); // clone again here if needed
             let rx = tx.subscribe();
             let physics_world = physics_world.clone();
+            let room_controller_ws = room_controller.clone();
 
             async move {
-                ws.on_upgrade(move |socket| handle_socket(socket, physics_world, tx, rx))
+                ws.on_upgrade(move |socket| handle_socket(socket,room_controller_ws, physics_world, tx, rx))
             }
         }
     }));
@@ -144,23 +152,23 @@ async fn main() {
     //  let tx = tx.clone();
    
     let physics_world = physics_world.clone();
+    let room_controller_tick = room_controller.clone();
 
     tokio::spawn(async move {
         let mut interval = time::interval(Duration::from_millis(33)); //This decides tick rate (fps) (~30fps)
-        //interval.tick().await;
    
         loop {
           
             interval.tick().await;
+
+            let mut room_control = room_controller_tick.lock().await; //Ticking rooms.
+            room_control.process_rooms(1.0 / 30.0);
       
             //wait for the world to be freed up and to access.
             
                 let mut world = physics_world.lock().await;
                 world.step(1.0 / 30.0); // Advance physics
             
-
-      
-
             // Extract ball position this is used to send state to client.
             if let Some(ball_body) = world.world.get(world.ball_handle) { // Some() is used if a val may or may not exist.
                 //world.world.get is calling the physics world obj, then navigating to world in the struct, then using .get to search for the ball_handle (also a val in the struct)
@@ -183,7 +191,7 @@ async fn main() {
 
             //Also need to send opposing player data here.
 
-            let player_map = &world.player_map ;
+            let player_map = &world.player_map;
             let mut player_index_num = 0;
 
             
@@ -225,10 +233,11 @@ async fn main() {
 }
 
 
-async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWorld>>, _tx:broadcast::Sender<String>, mut rx:broadcast::Receiver<String>) {
+async fn handle_socket(mut socket: WebSocket, room_controller: Arc<Mutex<RoomController>>, physics_world: Arc<Mutex<PhysicsWorld>>, _tx:broadcast::Sender<String>, mut rx:broadcast::Receiver<String>) {
 
     //creating and assigning new playerID
      let player_id = Uuid::new_v4();
+     let player_data = Player::new();
 
       // Add their paddle to the physics world
       // This code means that it waits until the thread gets exclusive access to physics_world
@@ -239,6 +248,12 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
         let mut world = physics_world.lock().await;
         world.add_player(player_id);
         player_index = world.get_player_number(player_id);
+    }
+
+    {
+        let mut room_control = room_controller.lock().await;
+        
+
     }
 
     println!("Player {} connected", player_id);
@@ -282,6 +297,17 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
                  if let Ok(json) = serde_json::from_str::<Value>(&text) {
                     if let Some(msg_type) = json.get("type").and_then(|v| v.as_str()) {
 
+                        if msg_type == "join_room" {
+                            //This func runs when player clicks "join room" or "play" button 
+
+                            {
+                                let mut room_control = room_controller.lock().await;
+                               // room_control.add_player_to_room();
+
+                            }
+
+                        }
+
                         // Checks msg type is move so we know what vars are available.
                         if msg_type == "move" { 
                             let dx = json.get("dx").and_then(|val| val.as_f64());
@@ -322,6 +348,8 @@ async fn handle_socket(mut socket: WebSocket, physics_world: Arc<Mutex<PhysicsWo
 
 
                         }
+
+                        
 
 
                         //println!("msg value: {}", msg_type);
