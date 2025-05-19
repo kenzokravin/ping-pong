@@ -9,6 +9,8 @@ use uuid::Uuid;
 mod room;
 use room::Room;
 
+use crate::Player;
+
 pub struct RoomController {
     rooms: HashMap<Uuid,Room>,
     rooms_list: Vec<Room>,
@@ -24,9 +26,10 @@ impl RoomController {
         
     }
 
-    pub fn create_room(&mut self) -> Uuid { 
+    pub async fn create_room(&mut self) { 
         let new_room = Room::new(); //Creating new room.
         self.rooms_list.insert(new_room);
+        self.rooms.insert(new_room.id,new_room);
         
      }
 

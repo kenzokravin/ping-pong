@@ -32,16 +32,17 @@ impl Room {
         let id = Uuid::new_v4(); //Creating room_id.
         let capacity = 2;
         let state = "Not Started";
+        let is_free = true;
 
         let physics_world = Arc::new(Mutex::new(PhysicsWorld::new())); //Creating async phys world, so can be accessed safely across threads.
 
 
         Room { //Init Room.
-            room_type.to_string(),
+            room_type:room_type.to_string(),
             id,
             capacity,
-            r#true,
-            state.to_string(),
+            is_free,
+            state:state.to_string(),
             players_in_room: Vec::new(),
             physics_world,
         }
@@ -49,13 +50,13 @@ impl Room {
     }
 
     pub fn get_room_id(&mut self) -> Uuid {
-        self.room_id
+        self.id
     }
 
     pub fn add_player(&mut self,player: Player) {
         //Add player to room logic.
         //Will add player to world.
-        players_in_room.insert(player);
+        self.players_in_room.insert(usize,player);
         self.pop += 1;
 
 

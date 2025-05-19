@@ -28,7 +28,7 @@ impl Player {
 
         Player { //Init Player
             id,
-            display_name.to_string(),
+            display_name:display_name.to_string(),
         }
         
     }
