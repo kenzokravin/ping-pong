@@ -29,6 +29,9 @@ use room_controller::RoomController;
 mod player;
 use player::Player;
 
+mod player_messages;
+use player_messages::PlayerMessage;
+
 
 #[tokio::main]
 async fn main() {
@@ -289,6 +292,31 @@ async fn handle_socket(mut socket: WebSocket, room_controller: Arc<Mutex<RoomCon
             Message::Text(text) => {
 
                 //println!("Received message: {}", text);
+
+                if let Ok(message) = serde_json::from_str::<PlayerMessage>(&text) {
+                    match message {
+                        PlayerMessage::JoinRoom { player_data } => {
+                            let mut room_control = room_controller.lock().await;
+                            room_control.add_player_to_room(player_data);
+                        }
+
+                        PlayerMessage::Move { dx, dy, dz } => {
+                            let mut world = physics_world.lock().await;
+                            world.add_move_to_queue(player_id, dx, dy, dz);
+
+                            let mut room_control = room_controller.lock().await;
+                            room_control.player_move(player_data,dx,dy,dz);
+                        }
+
+                        PlayerMessage::HitBegin {} => {
+                            let mut world = physics_world.lock().await;
+                            world.player_hit(player_id);
+                            println!("Received Hit Start for {}", player_id);
+                        }
+                    }
+                }
+
+
 
                 //This area is where we handle player messages.
                 //Here we will control the movement of the player bodies/colliders (their phys objects.)

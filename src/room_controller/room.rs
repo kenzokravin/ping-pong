@@ -63,6 +63,10 @@ impl Room {
 
 
     }
+
+    pub fn handle_player_input(&mut self, player:Player) {
+
+    }
     
     pub fn start_room(&mut self) {
 
@@ -77,4 +81,8 @@ impl Room {
 
     }
     
+    pub fn player_move(&mut self, player:Player,dx: f64, dy: f64, dz: f64) {
+        
+    }
+
 }

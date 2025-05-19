@@ -6,15 +6,14 @@
 //Also might be able to handle websocket connections here. (Might need to verify)
 //It would use unbounded MPSC channels (tx.send etc)
 
-use std::collections::HashMap;
 use uuid::Uuid;
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 pub struct Player {
-    id: Uuid,
-    display_name: String,
+    pub id: Uuid,
+    pub display_name: String,
 
 }
 

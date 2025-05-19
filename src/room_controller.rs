@@ -36,31 +36,70 @@ impl RoomController {
 
         //Search through rooms with room_free == true.
         //Add player to room.
-         for room in self.rooms_list.iter_mut() {
-    let room_state = room.state.to_string();
 
-    if room.state == "Not Started" {
-        if room.pop < room.capacity {
-            room.add_player(player);
+        for room in self.rooms_list.iter_mut() {
+            let room_state = room.state.to_string();
+
+            if room.state == "Not Started" {
+                if room.pop < room.capacity {
+                    room.add_player(player);
+                    break; //break function once player has found a room.
+                }
+            }
         }
     }
-}
-    }
 
-    pub fn handle_input(&mut self, room_id: Uuid, input: PlayerInput) { 
-        
-    }
+    // pub fn handle_input(&mut self, player:Player) { 
 
-    pub fn delete_room(&mut self, room_id: Uuid) {
+    //     for room in self.rooms_list.iter_mut() {
+
+    //         for room_player in room.players_in_room.iter_mut() {
+
+    //             if room_player.id == player.id {
+    //                 room.handle_player_input(player);
+    //             }
+    //         }
+    //     } 
+    // }
+
+    pub fn delete_room(&mut self) {
+
+
 
 
     }
 
     pub fn process_rooms(&mut self, dt: f32) {
-        for room in &mut self.rooms_list {
+        if self.rooms_list.is_empty() {
+
+        } else {
+            for room in &mut self.rooms_list {
             room.tick_room(dt); //Stepping physics world in room.
         }
+        }
+
     }
+
+    pub fn player_move(&mut self, player: Player, dx: f64, dy: f64, dz: f64) {
+        if let Some(room) = self.find_room_by_player(player) {
+            room.player_move(player_id, dx, dy, dz);
+        }
+    }
+
+    pub fn find_room_by_player(&mut self, player:Player) -> Option<&Room> {
+
+         for room in self.rooms_list.iter_mut() {
+            for room_player in room.players_in_room.iter_mut() {
+
+                if room_player.id == player.id {
+                    return room;
+                    break;
+                    
+                }
+            }
+        } 
+    }
+
 
     
 
