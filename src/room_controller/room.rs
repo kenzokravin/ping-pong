@@ -3,11 +3,10 @@
 //A room is a lobby of players, or their "world".
 //It is used to isolate each physics world to it's own instance.
 
-use std::collections::HashMap;
 use uuid::Uuid;
 
-mod physics_world; //importing code from physics_world.
-use physics_world::PhysicsWorld;
+ mod physics_world; //importing code from physics_world.
+ use physics_world::PhysicsWorld;
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -15,14 +14,14 @@ use tokio::sync::Mutex;
 use crate::Player;
 
 pub struct Room {
-    room_type: String,
-    id: Uuid,
-    capacity: i32,
-    pop: i32,
-    is_free: bool,
-    state: String,
-    players_in_room: Vec<Player>,
-    physics_world: Arc<Mutex<PhysicsWorld>>,
+    pub room_type: String,
+    pub id: Uuid,
+    pub capacity: i32,
+    pub pop: i32,
+    pub is_free: bool,
+    pub state: String,
+    pub players_in_room: Vec<Player>,
+    pub physics_world: Arc<Mutex<PhysicsWorld>>,
 
 }
 
@@ -33,6 +32,7 @@ impl Room {
         let capacity = 2;
         let state = "Not Started";
         let is_free = true;
+        let pop = 0;
 
         let physics_world = Arc::new(Mutex::new(PhysicsWorld::new())); //Creating async phys world, so can be accessed safely across threads.
 
@@ -41,6 +41,7 @@ impl Room {
             room_type:room_type.to_string(),
             id,
             capacity,
+            pop,
             is_free,
             state:state.to_string(),
             players_in_room: Vec::new(),
@@ -56,7 +57,7 @@ impl Room {
     pub fn add_player(&mut self,player: Player) {
         //Add player to room logic.
         //Will add player to world.
-        self.players_in_room.insert(usize,player);
+        self.players_in_room.push(player);
         self.pop += 1;
 
 
@@ -72,7 +73,7 @@ impl Room {
 
     }
 
-    pub fn tick(&mut self, dt:f32) {
+    pub fn tick_room(&mut self, dt:f32) {
 
     }
     

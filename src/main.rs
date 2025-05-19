@@ -17,7 +17,6 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use rapier3d::prelude::*;
 use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
-use std::collections::HashMap;
 
 mod physics; //importing all code in /physics
 use physics::PhysicsWorld;

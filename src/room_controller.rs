@@ -2,7 +2,6 @@
 //It holds all the necessary data to manage room sessions on the server. 
 //It will control which player is put in what room, when to start a session, how players join etc.
 
-
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -28,25 +27,24 @@ impl RoomController {
 
     pub async fn create_room(&mut self) { 
         let new_room = Room::new(); //Creating new room.
-        self.rooms_list.insert(new_room);
-        self.rooms.insert(new_room.id,new_room);
+        self.rooms_list.push(new_room.await);
+        //self.rooms.insert(new_room.await.id,new_room.await);
         
      }
 
-    pub fn add_player_to_room(&mut self, player: Player) -> Result<(), Error> {
+    pub fn add_player_to_room(&mut self, player: Player) {
 
         //Search through rooms with room_free == true.
         //Add player to room.
-         for room in self.rooms_list.as_mut() {
+         for room in self.rooms_list.iter_mut() {
+    let room_state = room.state.to_string();
 
-            let room_state = room.state;
-
-            if room.state == "Not Started" {   //Checking game hasn't started.
-                if room.pop < room.capacity { // Checking the room is not full.
-                    room.add_player(player);
-                }
-            }
+    if room.state == "Not Started" {
+        if room.pop < room.capacity {
+            room.add_player(player);
         }
+    }
+}
     }
 
     pub fn handle_input(&mut self, room_id: Uuid, input: PlayerInput) { 
@@ -59,8 +57,8 @@ impl RoomController {
     }
 
     pub fn process_rooms(&mut self, dt: f32) {
-        for room in self.rooms_list.as_mut() {
-            room.tick(dt); //Stepping physics world in room.
+        for room in &mut self.rooms_list {
+            room.tick_room(dt); //Stepping physics world in room.
         }
     }
 
