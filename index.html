@@ -1,35 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bat and Ball Simulation</title>
 
-  <link rel="stylesheet" type="text/css" href="style.css">
-
-</head>
-<body>
-  <!-- <script type="module" src="./server.js"></script> -->
-  <!-- <script type="module" src="./src/main.js"></script> -->
-</body>
-</html>
 
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Stylized Persona Menu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ping Pong</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
-  
+     <link rel="stylesheet" type="text/css" href="style.css">
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
  
 </head>
-<body class="bg-grid text-white min-h-screen flex items-center justify-center  w-full">
+<body class=" bg-grid text-white min-h-screen flex items-center justify-center  w-full">
+  
+  <div class="" id="menu">
+    <div class="bg-image-one bg-enter">
+      <img src="src/img_assets/bg_1.png">
+    </div>
 
-  <div class="space-y-4 menu-part-one">
+  <div class="space-y-4 ">
+    <div class="space-y-4 menu-part-one">
     <div class="menu-item-logo text-red bg-white text-8xl p-4 pl-0 cursor-pointer ">
       <div class="pl-4">
         <b>
@@ -38,7 +31,7 @@
       </div>
     </div>
     
-    <div class="menu-item-p1 text-6xl bg-red-600 p-6 pl-3 cursor-pointer  persona-shadow">
+    <div class="play-btn menu-item-p1 text-6xl bg-red-600 p-6 pl-3 cursor-pointer  persona-shadow" id="play-btn">
       <div class="pl-4">
       <b>
       PLAY
@@ -51,6 +44,7 @@
       HOW TO PLAY
       </b>
       </div>
+    </div>
     </div>
     <div class="space-y-4 text-2xl  menu-enter-two">
     <div class="menu-item-p2 bg-black p-4 cursor-pointer ">
@@ -67,11 +61,25 @@
     </div>
   </div>
   </div>
+  </div>
  
+ <!-- <script type="module" src="./server.js"></script> -->
+   <!-- <script type="module" src="./src/main.js"></script> -->
+
+<script>
+
+  document.getElementById("play-btn").addEventListener("click", function() {
+    document.getElementById("menu").classList.add("hidden");
+    document.getElementById("game-container").style.display = "block";
+    startGame();
+});
+
+
+  
+</script>
 
 </body>
 
-  <!-- <script type="module" src="./src/main.js"></script> -->
 
-</body>
+
 </html>

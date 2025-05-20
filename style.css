@@ -3,8 +3,13 @@ html, body {
     height: 100%;
     margin:0px;
     padding: 0px;
-
+    overflow: hidden;
+    
     /* cursor: none; */
+}
+
+.hidden {
+  display: none;
 }
 
 .bg-grid {
@@ -12,6 +17,12 @@ html, body {
   background-image: radial-gradient(rgb(192, 192, 192) 2px, transparent 0);
   background-size: 40px 40px;
   background-position: -19px -19px;
+}
+
+#menu.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
 }
 
 
@@ -26,8 +37,8 @@ html, body {
     }
 
       @keyframes slideIn-two {
-      from { transform: translateX(300px) translateY(-10px) skewX(0deg) rotate(25deg) ; opacity: 0; }
-      to { transform: translateX(300px) translateY(-10px) skewX(0deg) rotate(25deg) ; opacity: 1; }
+      from { transform: translateX(200%) translateY(-0px) skewX(0deg) rotate(20deg) ; opacity: 0; }
+      to { transform: translateX(320px) translateY(-0px) skewX(0deg) rotate(20deg) ; opacity: 1; }
     }
 
 
@@ -54,6 +65,23 @@ html, body {
      @keyframes slideIn-insta {
       from { transform: translateX(+100%) skewX(-10deg) rotate(10deg) translateY(100px); opacity: 0; }
       to { transform: translateX(0) skewX(-10deg) rotate(+10deg) translateY(100px);; opacity: 1; }
+    }
+
+    @keyframes slideIn-bg-image-one {
+      from { transform: translateX(-100%) skewX(0deg) rotate(10deg) translateY(0px); opacity: 0; }
+      to { transform: translateX(0) skewX(0deg) rotate(+10deg) translateY(00px);; opacity: 1; }
+    }
+
+    .bg-image-one {
+      height: auto;
+      max-width: 950px;
+      
+      object-fit: cover;
+      z-index: -1;
+    }
+
+    .bg-enter {
+      animation: slideIn-bg-image-one 0.6s ease-out forwards;
     }
 
     .menu-part-one {
@@ -152,7 +180,7 @@ html, body {
       border-width: 2px; */
     }
 
-    .menu-item-insta:hover {
+    .menu-item-insta i:hover {
       background: #ffffff;
       color: #ff0000;
       /* border-color: #000000;
