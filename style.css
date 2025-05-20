@@ -19,6 +19,13 @@ html, body {
   background-position: -19px -19px;
 }
 
+.bg-grid-lines {
+    background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, grey 1px, transparent 1px),
+    linear-gradient(to bottom, grey 1px, transparent 1px);
+}
+
 #menu.hidden {
     opacity: 0;
     pointer-events: none;
