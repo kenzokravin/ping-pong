@@ -72,6 +72,22 @@ html, body {
       to { transform: translateX(0) skewX(0deg) rotate(+10deg) translateY(00px);; opacity: 1; }
     }
 
+    @keyframes slideIn-menu-play {
+      from { transform: translateX(-100%) skewX(3deg) rotate(10deg) translateY(0px); opacity: 0; }
+      to { transform: translateX(0) skewX(0deg) rotate(+10deg) translateY(00px);; opacity: 1; }
+    }
+
+    @keyframes slideIn-menu-play-two {
+      from { transform: translateX(200%) skewX(3deg) rotate(-10deg) translateY(0px); opacity: 0; }
+      to { transform: translateX(200px) skewX(0deg) rotate(-10deg) translateY(00px);; opacity: 1; }
+    }
+
+    @keyframes slideIn-menu-play-single {
+      from { transform: translateX(-100%) skewX(3deg) rotate(3deg) translateY(20px); opacity: 0; }
+      to { transform: translateX(-200px) skewX(0deg) rotate(3deg) translateY(20px);; opacity: 1; }
+    }
+
+
     .bg-image-one {
       height: auto;
       max-width: 950px;
@@ -88,13 +104,29 @@ html, body {
 
        animation: slideIn-part-one 0.6s ease-out forwards;
 
+    }
 
+    .menu-play-part-one {
 
-       
+       animation: slideIn-menu-play 0.6s ease-out forwards;
+
+    }
+
+    .menu-play-part-two {
+
+       animation: slideIn-menu-play-two 0.6s ease-out forwards;
+
+    }
+
+    .menu-play-part-single {
+
+       animation: slideIn-menu-play-single 0.6s ease-out forwards;
+
     }
 
     .menu-item-p1 {
        /* clip-path: polygon(10% 0%, 100% 0%, 90% 100%, 0% 100%); */
+        clip-path: polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%); 
       width: 400px;
       /* transform: skewX(-10deg); */
       
@@ -102,8 +134,18 @@ html, body {
 
 
     }
-    .menu-item-p2 {
+
+     .menu-item-display-name {
        /* clip-path: polygon(10% 0%, 100% 0%, 90% 100%, 0% 100%); */
+      width: 350px;
+      /* transform: skewX(-10deg); */
+      
+      transition: background 0.3s ease;
+
+
+    }
+    .menu-item-p2 {
+       clip-path: polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%); 
       width: 250px;
       /* transform: skewX(-10deg); */
       
@@ -124,6 +166,7 @@ html, body {
     }
 
     .menu-item-howto {
+       clip-path: polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%); 
        /* clip-path: polygon(10% 0%, 100% 0%, 90% 100%, 0% 100%); */
       width: 275px;
       /* transform: skewX(-10deg); */

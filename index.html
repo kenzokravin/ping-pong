@@ -14,19 +14,26 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
  
 </head>
-<body class=" bg-grid text-white min-h-screen flex items-center justify-center  w-full">
+<body class=" text-white min-h-screen flex items-center justify-center  w-full">
   
-  <div class="" id="menu">
-    <div class="bg-image-one bg-enter">
+  
+    <!-- <div class="bg-image-one bg-enter">
       <img src="src/img_assets/bg_1.png">
-    </div>
+    </div> -->
 
-  <div class="space-y-4 ">
+  <div class="space-y-4  " id="menu">
+
+    <div id="menu-main">
     <div class="space-y-4 menu-part-one">
-    <div class="menu-item-logo text-red bg-white text-8xl p-4 pl-0 cursor-pointer ">
+    <div class="menu-item-logo text-red bg-white text-8xl p-4 pl-0  ">
       <div class="pl-4">
         <b>
       PING-PONG
+      </b>
+      </div>
+      <div class="text-xs pl-4">
+        <b>
+      (by kenny mac)
       </b>
       </div>
     </div>
@@ -61,7 +68,58 @@
     </div>
   </div>
   </div>
+
+  <div id="menu-play" class="hidden">
+    <div class="space-y-4 menu-play-part-one">
+    
+    <div class=" menu-item-display-name bg-red-600 p-6 pl-3 persona-shadow" >
+      <div class="">
+      <input type="text" id="display-name" class=" p-4 bg-white border border-gray-300 text-gray-900 text-lg rounded-lg lock w-full" placeholder="ENTER YOUR DISPLAY NAME" />
+
+      </div>
+    </div>
+    </div>
+    <div class="space-y-4 menu-play-part-single">
+    <div class="menu-item-p2 text-3xl bg-black p-4 cursor-pointer ">
+      <div class="pl-4">
+      <b>
+      SINGLES
+      </b>
+      </div>
+    </div>
+    </div>
+    
+    <div class="space-y-4 text-2xl  menu-play-part-two">
+    <div class="menu-item-p2 bg-black p-4 cursor-pointer ">
+      <div class="pl-4">
+      <b>
+      DOUBLES
+      </b>
+      </div>
+    </div>
+    <div class="menu-item-insta p-6 bg-white cursor-pointer " id="back-play">
+      <div class="pl-4">
+      <i class="fa-solid fa-arrow-left fa-2xl"></i>
+      </div>
+    </div>
   </div>
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+
+
  
  <!-- <script type="module" src="./server.js"></script> -->
    <!-- <script type="module" src="./src/main.js"></script> -->
@@ -69,11 +127,16 @@
 <script>
 
   document.getElementById("play-btn").addEventListener("click", function() {
-    document.getElementById("menu").classList.add("hidden");
-    document.getElementById("game-container").style.display = "block";
-    startGame();
+  document.getElementById("menu-main").classList.add("hidden");
+   document.getElementById("menu-play").classList.remove("hidden");
+    
 });
 
+  document.getElementById("back-play").addEventListener("click", function() {
+  document.getElementById("menu-main").classList.remove("hidden");
+   document.getElementById("menu-play").classList.add("hidden");
+    
+});
 
   
 </script>
