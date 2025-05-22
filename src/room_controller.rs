@@ -81,23 +81,30 @@ impl RoomController {
     }
 
     pub fn player_move(&mut self, player: Player, dx: f64, dy: f64, dz: f64) {
-        if let Some(room) = self.find_room_by_player(player) {
-            room.player_move(player_id, dx, dy, dz);
+
+         let cl_player = player.clone();
+
+        if let Some(room) = self.find_room_by_player(cl_player) {
+            room.player_move(player, dx, dy, dz);
         }
     }
 
-    pub fn find_room_by_player(&mut self, player:Player) -> Option<&Room> {
+    pub fn find_room_by_player(&mut self, player:Player) -> Option<&mut Room> {
+
+       
 
          for room in self.rooms_list.iter_mut() {
             for room_player in room.players_in_room.iter_mut() {
 
                 if room_player.id == player.id {
-                    return room;
+                    return Some(room);
                     break;
                     
                 }
             }
         } 
+
+        None
     }
 
 

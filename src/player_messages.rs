@@ -26,5 +26,6 @@ pub enum PlayerMessage {
     HitEnd {
 
     },
+    None,
 
 }

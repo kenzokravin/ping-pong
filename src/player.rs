@@ -11,6 +11,7 @@ use uuid::Uuid;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+#[derive(Debug, Clone)]
 pub struct Player {
     pub id: Uuid,
     pub display_name: String,
