@@ -21,7 +21,7 @@ pub struct Room {
     pub is_free: bool,
     pub state: String,
     pub players_in_room: Vec<Player>,
-    pub physics_world: Arc<Mutex<PhysicsWorld>>,
+    pub physics_world: PhysicsWorld,
 
 }
 
@@ -34,7 +34,7 @@ impl Room {
         let is_free = true;
         let pop = 0;
 
-        let physics_world = Arc::new(Mutex::new(PhysicsWorld::new())); //Creating async phys world, so can be accessed safely across threads.
+        let physics_world = PhysicsWorld::new(); //Creating async phys world, so can be accessed safely across threads.
 
 
         Room { //Init Room.
@@ -77,11 +77,16 @@ impl Room {
 
     }
 
-    pub fn tick_room(&mut self, dt:f32) {
-
+    pub fn tick_room(&mut self, dt:f32) { //Function to process world state of room.
+        let mut world = &mut self.physics_world;
+        world.step(dt);
     }
     
-    pub fn player_move(&mut self, player:Player,dx: f64, dy: f64, dz: f64) {
+    pub fn player_move(&mut self, player:Player,dx: f64, dy: f64, dz: f64) { //Function to move player in room.
+
+        let mut world = &mut self.physics_world;
+        world.add_move_to_queue(player.id,dx,dy,dz);
+        
         
     }
 

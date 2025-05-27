@@ -82,7 +82,7 @@ impl RoomController {
 
     pub fn player_move(&mut self, player: Player, dx: f64, dy: f64, dz: f64) {
 
-         let cl_player = player.clone();
+        let cl_player = player.clone();
 
         if let Some(room) = self.find_room_by_player(cl_player) {
             room.player_move(player, dx, dy, dz);

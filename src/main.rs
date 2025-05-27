@@ -32,6 +32,8 @@ use player::Player;
 mod player_messages;
 use player_messages::PlayerMessage;
 
+type ClientMap = Arc<Mutex<HashMap<Uuid, UnboundedSender<String>>>>;
+
 
 #[tokio::main]
 async fn main() {
@@ -165,6 +167,34 @@ async fn main() {
 
             let mut room_control = room_controller_tick.lock().await; //Ticking rooms.
             room_control.process_rooms(1.0 / 30.0);
+
+
+            //Accessing all rooms and finding all info in all rooms and sending to players.
+            for rooms in room_control.rooms_list.iter_mut() {
+
+                if let Some(ball_bod) = room.physics_world.world.get(room.physics_world.ball_handle) { //Getting the ball handle from the rigif body set in the physics world of the room.
+                    let pos = ball.translation();
+                    let vel = ball.linvel();
+
+                    let state = serde_json::json!({
+                         "type": "ball_state",
+                         "pos": [pos.x, pos.y, pos.z],
+                          "vel": [vel.x, vel.y, vel.z]
+                    });
+
+                    // ✅ Only send to players in this room
+                    for player in &room.players {
+                        if let Some(sender) = clients.lock().await.get(&player.id) {
+                            let _ = sender.send(state.to_string());
+                        }
+
+                }
+
+
+
+            }
+
+
       
             //wait for the world to be freed up and to access.
             
